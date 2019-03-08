@@ -20,20 +20,20 @@ interface ERC223Receiver {
 
 contract ERC223Abstract is ERC223 {
 
-    mapping (address => uint) balances;
+    mapping (address => uint) accountBalance;
 
     string public symbol;
     string public name;
     uint public decimals;
 
     modifier hasSufficientBalance(uint value) {
-        require (balances[msg.sender] >= value, "Insufficient balance.");
+        require (accountBalance[msg.sender] >= value, "Insufficient balance.");
         _;
     }
 
     function _transfer(address to, uint value) internal hasSufficientBalance(value) {
-        balances[msg.sender] -= value;
-        balances[to] += value;
+        accountBalance[msg.sender] -= value;
+        accountBalance[to] += value;
     }
 
     function isContract(address account) internal view returns (bool) {
@@ -70,7 +70,7 @@ contract ERC223Abstract is ERC223 {
     }
 
     function balanceOf(address who) external view returns (uint) {
-        return balances[who];
+        return accountBalance[who];
     }
 
 }
