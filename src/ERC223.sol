@@ -36,7 +36,7 @@ contract ERC223Abstract is ERC223 {
         accountBalance[to] += value;
     }
 
-    function isContract(address account) internal view returns (bool) {
+    function _isContract(address account) internal view returns (bool) {
         uint length;
         assembly {
             length := extcodesize(account)
@@ -49,7 +49,7 @@ contract ERC223Abstract is ERC223 {
         // Transfer the tokens.
         _transfer(to, value);
         // Tell the receiver they received some tokens.
-        if (isContract(to)) {
+        if (_isContract(to)) {
             ERC223Receiver receiver = ERC223Receiver(to);
             receiver.tokenFallback(msg.sender, value, empty);
         }
@@ -61,7 +61,7 @@ contract ERC223Abstract is ERC223 {
         // Transfer the tokens.
         _transfer(to, value);
         // Tell the receiver they received some tokens.
-        if (isContract(to)) {
+        if (_isContract(to)) {
             ERC223Receiver receiver = ERC223Receiver(to);
             receiver.tokenFallback(msg.sender, value, data);
         }
