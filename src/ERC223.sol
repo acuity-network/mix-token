@@ -3,8 +3,12 @@ pragma solidity ^0.5.4;
 
 interface ERC223 {
     event Transfer(address indexed from, address indexed to, uint value, bytes data);
+    event Authorize(address indexed account, address indexed authorized);
+    event Unauthorize(address indexed account, address indexed unauthorized);
     function transfer(address to, uint value) external;
+    function transfer(address from, address to, uint value) external;
     function transfer(address to, uint value, bytes calldata data) external;
+    function transfer(address from, address to, uint value, bytes calldata data) external;
     function symbol() external view returns (string memory);
     function name() external view returns (string memory);
     function decimals() external view returns (uint);
@@ -22,17 +26,24 @@ contract ERC223Abstract is ERC223 {
 
     mapping (address => uint) accountBalance;
 
+    mapping (address => mapping (address => bool)) accountAuthorized;
+
     string public symbol;
     string public name;
     uint public decimals;
 
-    modifier hasSufficientBalance(uint value) {
-        require (accountBalance[msg.sender] >= value, "Insufficient balance.");
+    modifier hasSufficientBalance(address account, uint value) {
+        require (accountBalance[account] >= value, "Insufficient balance.");
         _;
     }
 
-    function _transfer(address to, uint value) internal hasSufficientBalance(value) {
-        accountBalance[msg.sender] -= value;
+    modifier isAuthorized(address account) {
+        require (accountAuthorized[account][msg.sender], "Not authorized.");
+        _;
+    }
+
+    function _transfer(address from, address to, uint value) internal hasSufficientBalance(from, value) {
+        accountBalance[from] -= value;
         accountBalance[to] += value;
     }
 
@@ -47,7 +58,7 @@ contract ERC223Abstract is ERC223 {
     function transfer(address to, uint value) external {
         bytes memory empty;
         // Transfer the tokens.
-        _transfer(to, value);
+        _transfer(msg.sender, to, value);
         // Tell the receiver they received some tokens.
         if (_isContract(to)) {
             ERC223Receiver(to).tokenFallback(msg.sender, value, empty);
@@ -56,15 +67,48 @@ contract ERC223Abstract is ERC223 {
         emit Transfer(msg.sender, to, value, empty);
     }
 
+    function transfer(address from, address to, uint value) external isAuthorized(from) {
+        bytes memory empty;
+        // Transfer the tokens.
+        _transfer(from, to, value);
+        // Tell the receiver they received some tokens.
+        if (_isContract(to)) {
+            ERC223Receiver(to).tokenFallback(from, value, empty);
+        }
+        // Log the event.
+        emit Transfer(from, to, value, empty);
+    }
+
     function transfer(address to, uint value, bytes calldata data) external {
         // Transfer the tokens.
-        _transfer(to, value);
+        _transfer(msg.sender, to, value);
         // Tell the receiver they received some tokens.
         if (_isContract(to)) {
             ERC223Receiver(to).tokenFallback(msg.sender, value, data);
         }
         // Log the event.
         emit Transfer(msg.sender, to, value, data);
+    }
+
+    function transfer(address from, address to, uint value, bytes calldata data) external isAuthorized(from) {
+        // Transfer the tokens.
+        _transfer(from, to, value);
+        // Tell the receiver they received some tokens.
+        if (_isContract(to)) {
+            ERC223Receiver(to).tokenFallback(from, value, data);
+        }
+        // Log the event.
+        emit Transfer(from, to, value, data);
+    }
+
+    function authorize(address account) external {
+        accountAuthorized[msg.sender][account] = true;
+        emit Authorize(msg.sender, account);
+    }
+
+    function unauthorize(address account) external {
+        delete accountAuthorized[msg.sender][account];
+        emit Unauthorize(msg.sender, account);
     }
 
     function balanceOf(address who) external view returns (uint) {
