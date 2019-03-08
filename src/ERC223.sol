@@ -50,8 +50,7 @@ contract ERC223Abstract is ERC223 {
         _transfer(to, value);
         // Tell the receiver they received some tokens.
         if (_isContract(to)) {
-            ERC223Receiver receiver = ERC223Receiver(to);
-            receiver.tokenFallback(msg.sender, value, empty);
+            ERC223Receiver(to).tokenFallback(msg.sender, value, empty);
         }
         // Log the event.
         emit Transfer(msg.sender, to, value, empty);
@@ -62,8 +61,7 @@ contract ERC223Abstract is ERC223 {
         _transfer(to, value);
         // Tell the receiver they received some tokens.
         if (_isContract(to)) {
-            ERC223Receiver receiver = ERC223Receiver(to);
-            receiver.tokenFallback(msg.sender, value, data);
+            ERC223Receiver(to).tokenFallback(msg.sender, value, data);
         }
         // Log the event.
         emit Transfer(msg.sender, to, value, data);
