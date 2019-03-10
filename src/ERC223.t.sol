@@ -6,6 +6,12 @@ import "./ERC223.sol";
 
 contract ERC223Test is DSTest {
 
+    ERC223Base erc223;
+
+    function setUp() public {
+        erc223 = new ERC223Base();
+    }
+
     function testFail_basic_sanity() public {
         assertTrue(false);
     }

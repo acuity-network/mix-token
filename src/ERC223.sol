@@ -22,7 +22,7 @@ interface ERC223Receiver {
 }
 
 
-contract ERC223Abstract is ERC223 {
+contract ERC223Base is ERC223 {
 
     mapping (address => uint) accountBalance;
 
@@ -31,6 +31,7 @@ contract ERC223Abstract is ERC223 {
     string public symbol;
     string public name;
     uint public decimals;
+    uint public totalSupply;
 
     modifier hasSufficientBalance(address account, uint value) {
         require (accountBalance[account] >= value, "Insufficient balance.");
