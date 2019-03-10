@@ -28,10 +28,10 @@ contract ERC223Base is ERC223 {
 
     mapping (address => mapping (address => bool)) accountAuthorized;
 
-    string public symbol;
-    string public name;
-    uint public decimals;
-    uint public totalSupply;
+    string tokenSymbol;
+    string tokenName;
+    uint tokenDecimals;
+    uint tokenSupply;
 
     modifier hasSufficientBalance(address account, uint value) {
         require (accountBalance[account] >= value, "Insufficient balance.");
@@ -110,6 +110,22 @@ contract ERC223Base is ERC223 {
     function unauthorize(address account) external {
         delete accountAuthorized[msg.sender][account];
         emit Unauthorize(msg.sender, account);
+    }
+
+    function symbol() external view returns (string memory) {
+        return tokenSymbol;
+    }
+
+    function name() external view returns (string memory) {
+        return tokenName;
+    }
+
+    function decimals() external view returns (uint) {
+        return tokenDecimals;
+    }
+
+    function totalSupply() external view returns (uint) {
+        return tokenSupply;
     }
 
     function balanceOf(address who) external view returns (uint) {
