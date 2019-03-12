@@ -33,6 +33,11 @@ contract ERC223Base is ERC223 {
     uint tokenDecimals;
     uint tokenSupply;
 
+    modifier hasValue(uint value) {
+        require (value > 0, "No value.");
+        _;
+    }
+
     modifier hasSufficientBalance(address account, uint value) {
         require (accountBalance[account] >= value, "Insufficient balance.");
         _;
@@ -43,7 +48,7 @@ contract ERC223Base is ERC223 {
         _;
     }
 
-    function _transfer(address from, address to, uint value) internal hasSufficientBalance(from, value) {
+    function _transfer(address from, address to, uint value) internal hasValue(value) hasSufficientBalance(from, value) {
         accountBalance[from] -= value;
         accountBalance[to] += value;
     }
