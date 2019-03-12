@@ -46,11 +46,6 @@ contract ERC223Base is ERC223 {
         _;
     }
 
-    function _transfer(address from, address to, uint value) internal hasValue(value) hasSufficientBalance(from, value) {
-        accountBalance[from] -= value;
-        accountBalance[to] += value;
-    }
-
     function _isContract(address account) internal view returns (bool) {
         uint length;
         assembly {
@@ -59,9 +54,10 @@ contract ERC223Base is ERC223 {
         return length > 0;
     }
 
-    function transfer(address to, uint value, bytes calldata data) external {
-        // Transfer the tokens.
-        _transfer(msg.sender, to, value);
+    function _transfer(address from, address to, uint value, bytes memory data) internal hasValue(value) hasSufficientBalance(from, value) {
+        // Update balances.
+        accountBalance[from] -= value;
+        accountBalance[to] += value;
         // Tell the receiver they received some tokens.
         if (_isContract(to)) {
             ERC223Receiver(to).tokenFallback(msg.sender, value, data);
@@ -70,15 +66,14 @@ contract ERC223Base is ERC223 {
         emit Transfer(msg.sender, to, value, data);
     }
 
+    function transfer(address to, uint value, bytes calldata data) external {
+        // Transfer the tokens.
+        _transfer(msg.sender, to, value, data);
+    }
+
     function transfer(address from, address to, uint value, bytes calldata data) external isAuthorized(from) {
         // Transfer the tokens.
-        _transfer(from, to, value);
-        // Tell the receiver they received some tokens.
-        if (_isContract(to)) {
-            ERC223Receiver(to).tokenFallback(from, value, data);
-        }
-        // Log the event.
-        emit Transfer(from, to, value, data);
+        _transfer(from, to, value, data);
     }
 
     function authorize(address account) external {
