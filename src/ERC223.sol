@@ -5,6 +5,7 @@ interface ERC223 {
     event Transfer(address indexed from, address indexed to, uint value, bytes data);
     event Authorize(address indexed account, address indexed authorized);
     event Unauthorize(address indexed account, address indexed unauthorized);
+    function transfer(address to, uint value) external;
     function transfer(address to, uint value, bytes calldata data) external;
     function transfer(address from, address to, uint value, bytes calldata data) external;
     function symbol() external view returns (string memory);
@@ -64,6 +65,12 @@ contract ERC223Base is ERC223 {
         }
         // Log the event.
         emit Transfer(msg.sender, to, value, data);
+    }
+
+    function transfer(address to, uint value) external {
+        // Transfer the tokens.
+        bytes memory empty;
+        _transfer(msg.sender, to, value, empty);
     }
 
     function transfer(address to, uint value, bytes calldata data) external {
