@@ -5,8 +5,6 @@ interface ERC223 {
     event Transfer(address indexed from, address indexed to, uint value, bytes data);
     event Authorize(address indexed account, address indexed authorized);
     event Unauthorize(address indexed account, address indexed unauthorized);
-    function transfer(address to, uint value) external;
-    function transfer(address from, address to, uint value) external;
     function transfer(address to, uint value, bytes calldata data) external;
     function transfer(address from, address to, uint value, bytes calldata data) external;
     function symbol() external view returns (string memory);
@@ -59,30 +57,6 @@ contract ERC223Base is ERC223 {
             length := extcodesize(account)
         }
         return length > 0;
-    }
-
-    function transfer(address to, uint value) external {
-        bytes memory empty;
-        // Transfer the tokens.
-        _transfer(msg.sender, to, value);
-        // Tell the receiver they received some tokens.
-        if (_isContract(to)) {
-            ERC223Receiver(to).tokenFallback(msg.sender, value, empty);
-        }
-        // Log the event.
-        emit Transfer(msg.sender, to, value, empty);
-    }
-
-    function transfer(address from, address to, uint value) external isAuthorized(from) {
-        bytes memory empty;
-        // Transfer the tokens.
-        _transfer(from, to, value);
-        // Tell the receiver they received some tokens.
-        if (_isContract(to)) {
-            ERC223Receiver(to).tokenFallback(from, value, empty);
-        }
-        // Log the event.
-        emit Transfer(from, to, value, empty);
     }
 
     function transfer(address to, uint value, bytes calldata data) external {
