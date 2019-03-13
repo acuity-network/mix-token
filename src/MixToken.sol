@@ -1,7 +1,7 @@
 pragma solidity ^0.5.4;
 
 
-interface MixToken {
+interface MixTokenInterface {
     event Transfer(address indexed from, address indexed to, uint value, bytes data);
     event Authorize(address indexed account, address indexed authorized);
     event Unauthorize(address indexed account, address indexed unauthorized);
@@ -16,12 +16,27 @@ interface MixToken {
 }
 
 
-interface MixTokenReceiver {
-    function receiveMixToken(address from, uint value, bytes calldata data) external;
+contract MixTokenReceiverInterface {
+
+    /**
+     * @return bytes4(keccak256("receiveMixToken(address,uint,bytes)"))
+     */
+    function receiveMixToken(address from, uint value, bytes calldata data) external returns (bytes4);
 }
 
 
-contract MixTokenBase is MixToken {
+contract MixTokenReceiverBase is MixTokenReceiverInterface {
+
+    /**
+     * @return bytes4(keccak256("receiveMixToken(address,uint,bytes)"))
+     */
+    function receiveMixToken(address, uint, bytes calldata) external returns (bytes4) {
+        return 0xf2e0ed8f;
+    }
+}
+
+
+contract MixTokenBase is MixTokenInterface {
 
     mapping (address => uint) accountBalance;
 
@@ -56,7 +71,9 @@ contract MixTokenBase is MixToken {
         accountBalance[to] += value;
         // Tell the receiver they received some tokens.
         if (_isContract(to)) {
-            MixTokenReceiver(to).receiveMixToken(from, value, data);
+            require (MixTokenReceiverInterface(to).receiveMixToken(from, value, data) == 0xf2e0ed8f,
+                "Receiving contract has not implemented receiving method."
+            );
         }
         // Log the event.
         emit Transfer(from, to, value, data);
