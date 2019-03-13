@@ -1,15 +1,15 @@
 pragma solidity ^0.5.4;
 
 import "ds-test/test.sol";
-import "./ERC223.sol";
+import "./MixToken.sol";
 
 
-contract ERC223Test is DSTest {
+contract MixTokenTest is DSTest {
 
-    ERC223Base erc223;
+    MixTokenBase mixToken;
 
     function setUp() public {
-        erc223 = new ERC223Base();
+        mixToken = new MixTokenBase();
     }
 
     function testFail_basic_sanity() public {

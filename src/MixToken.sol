@@ -1,7 +1,7 @@
 pragma solidity ^0.5.4;
 
 
-interface ERC223 {
+interface MixToken {
     event Transfer(address indexed from, address indexed to, uint value, bytes data);
     event Authorize(address indexed account, address indexed authorized);
     event Unauthorize(address indexed account, address indexed unauthorized);
@@ -16,12 +16,12 @@ interface ERC223 {
 }
 
 
-interface ERC223Receiver {
-    function tokenFallback(address from, uint value, bytes calldata data) external;
+interface MixTokenReceiver {
+    function receiveMixToken(address from, uint value, bytes calldata data) external;
 }
 
 
-contract ERC223Base is ERC223 {
+contract MixTokenBase is MixToken {
 
     mapping (address => uint) accountBalance;
 
@@ -56,10 +56,10 @@ contract ERC223Base is ERC223 {
         accountBalance[to] += value;
         // Tell the receiver they received some tokens.
         if (_isContract(to)) {
-            ERC223Receiver(to).tokenFallback(msg.sender, value, data);
+            MixTokenReceiver(to).receiveMixToken(from, value, data);
         }
         // Log the event.
-        emit Transfer(msg.sender, to, value, data);
+        emit Transfer(from, to, value, data);
     }
 
     function transfer(address to, uint value) external {
