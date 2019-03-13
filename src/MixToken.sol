@@ -19,7 +19,7 @@ interface MixTokenInterface {
 
 contract MixTokenReceiverInterface {
 
-    /**``
+    /**
      * @return bytes4(keccak256("receiveMixToken(address,uint,bytes)"))
      */
     function receiveMixToken(address from, uint value, bytes calldata data) external returns (bytes4);
