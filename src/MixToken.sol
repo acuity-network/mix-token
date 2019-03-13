@@ -1,5 +1,7 @@
 pragma solidity ^0.5.4;
 
+import "mix-item-store/item_store_registry.sol";
+
 
 interface MixTokenInterface {
     event Transfer(address indexed from, address indexed to, uint value, bytes data);
@@ -57,6 +59,19 @@ contract MixTokenBase is MixTokenInterface {
     modifier isAuthorized(address account) {
         require (accountAuthorized[account][msg.sender], "Not authorized.");
         _;
+    }
+
+    constructor(string memory symbol, string memory name, uint decimals, ItemStoreRegistry itemStoreRegistry, bytes32 itemId) public {
+        ItemStoreInterface itemStore = itemStoreRegistry.getItemStore(itemId);
+        require(itemStore.getEnforceRevisions(itemId), "Item does not enforce revisions.");
+        require(!itemStore.getRetractable(itemId), "Item is retractable.");
+        require(!itemStore.getTransferable(itemId), "Item is transferable.");
+        require(itemStore.getOwner(itemId) == msg.sender, "Item is not owned by token owner.");
+
+        tokenSymbol = symbol;
+        tokenName = name;
+        tokenDecimals = decimals;
+        tokenItemId = itemId;
     }
 
     function _isContract(address account) internal view returns (bool) {
