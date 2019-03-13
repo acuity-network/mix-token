@@ -12,13 +12,14 @@ interface MixTokenInterface {
     function name() external view returns (string memory);
     function decimals() external view returns (uint);
     function totalSupply() external view returns (uint);
+    function getItemId() external view returns (bytes32);
     function balanceOf(address who) external view returns (uint);
 }
 
 
 contract MixTokenReceiverInterface {
 
-    /**
+    /**``
      * @return bytes4(keccak256("receiveMixToken(address,uint,bytes)"))
      */
     function receiveMixToken(address from, uint value, bytes calldata data) external returns (bytes4);
@@ -46,6 +47,7 @@ contract MixTokenBase is MixTokenInterface {
     string tokenName;
     uint tokenDecimals;
     uint tokenSupply;
+    bytes32 tokenItemId;
 
     modifier hasSufficientBalance(address account, uint value) {
         require (accountBalance[account] >= value, "Insufficient balance.");
@@ -119,6 +121,10 @@ contract MixTokenBase is MixTokenInterface {
 
     function totalSupply() external view returns (uint) {
         return tokenSupply;
+    }
+
+    function getItemId() external view returns (bytes32) {
+        return tokenItemId;
     }
 
     function balanceOf(address who) external view returns (uint) {
