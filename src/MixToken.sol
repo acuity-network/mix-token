@@ -1,6 +1,7 @@
 pragma solidity ^0.5.4;
 
 import "mix-item-store/item_store_registry.sol";
+import "./MixTokenRegistry.sol";
 
 
 interface MixTokenInterface {
@@ -14,7 +15,6 @@ interface MixTokenInterface {
     function name() external view returns (string memory);
     function decimals() external view returns (uint);
     function totalSupply() external view returns (uint);
-    function getItemId() external view returns (bytes32);
     function balanceOf(address who) external view returns (uint);
 }
 
@@ -49,7 +49,6 @@ contract MixTokenBase is MixTokenInterface {
     string tokenName;
     uint tokenDecimals;
     uint tokenSupply;
-    bytes32 tokenItemId;
 
     modifier hasSufficientBalance(address account, uint value) {
         require (accountBalance[account] >= value, "Insufficient balance.");
@@ -61,17 +60,11 @@ contract MixTokenBase is MixTokenInterface {
         _;
     }
 
-    constructor(string memory symbol, string memory name, uint decimals, ItemStoreRegistry itemStoreRegistry, bytes32 itemId) public {
-        ItemStoreInterface itemStore = itemStoreRegistry.getItemStore(itemId);
-        require(itemStore.getEnforceRevisions(itemId), "Item does not enforce revisions.");
-        require(!itemStore.getRetractable(itemId), "Item is retractable.");
-        require(!itemStore.getTransferable(itemId), "Item is transferable.");
-        require(itemStore.getOwner(itemId) == msg.sender, "Item is not owned by token owner.");
-
+    constructor(string memory symbol, string memory name, uint decimals, MixTokenRegistry registry, bytes32 itemId) public {
         tokenSymbol = symbol;
         tokenName = name;
         tokenDecimals = decimals;
-        tokenItemId = itemId;
+        registry.register(itemId);
     }
 
     function _isContract(address account) internal view returns (bool) {
@@ -136,10 +129,6 @@ contract MixTokenBase is MixTokenInterface {
 
     function totalSupply() external view returns (uint) {
         return tokenSupply;
-    }
-
-    function getItemId() external view returns (bytes32) {
-        return tokenItemId;
     }
 
     function balanceOf(address who) external view returns (uint) {

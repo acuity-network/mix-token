@@ -7,8 +7,9 @@ import "./MixToken.sol";
 
 contract Token is MixTokenBase {
 
-    constructor(string memory symbol, string memory name, uint decimals, ItemStoreRegistry itemStoreRegistry, bytes32 itemId)
-    MixTokenBase(symbol, name, decimals, itemStoreRegistry, itemId) public {
+    constructor(string memory symbol, string memory name, uint decimals, MixTokenRegistry tokenRegistry, bytes32 itemId) public
+        MixTokenBase(symbol, name, decimals, tokenRegistry, itemId)
+    {
         accountBalance[msg.sender] = 10;
     }
 
@@ -16,6 +17,7 @@ contract Token is MixTokenBase {
 
 contract MixTokenTest is DSTest {
 
+    MixTokenRegistry tokenRegistry;
     Token token;
     MixTokenReceiverBase tokenReceiver;
     ItemStoreRegistry itemStoreRegistry;
@@ -25,7 +27,8 @@ contract MixTokenTest is DSTest {
         itemStoreRegistry = new ItemStoreRegistry();
         itemStore = new ItemStoreIpfsSha256(itemStoreRegistry);
         bytes32 itemId = itemStore.create(hex"02", hex"1234");
-        token = new Token('a', 'A', 16, itemStoreRegistry, itemId);
+        tokenRegistry = new MixTokenRegistry(itemStoreRegistry);
+        token = new Token('a', 'A', 16, tokenRegistry, itemId);
         tokenReceiver = new MixTokenReceiverBase();
     }
 
