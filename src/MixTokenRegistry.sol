@@ -1,6 +1,6 @@
 pragma solidity ^0.5.9;
 
-import "mix-item-store/item_store_registry.sol";
+import "mix-item-store/ItemStoreRegistry.sol";
 
 
 contract MixTokenRegistry {
