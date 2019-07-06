@@ -1,4 +1,4 @@
-pragma solidity ^0.5.4;
+pragma solidity ^0.5.9;
 
 import "ds-test/test.sol";
 import "mix-item-store/item_store_ipfs_sha256.sol";
