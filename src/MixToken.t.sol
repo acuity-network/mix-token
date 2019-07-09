@@ -15,11 +15,23 @@ contract Token is MixTokenBase {
 
 }
 
+
+contract MixTokenReceiverMock is MixTokenReceiverInterface {
+
+    /**
+     * @return bytes4(keccak256("receiveMixToken(address,uint,bytes)"))
+     */
+    function onMixTokenReceived(address, uint, bytes calldata) external returns (bytes4) {
+        return 0x3c8c71b0;
+    }
+}
+
+
 contract MixTokenTest is DSTest {
 
     MixTokenRegistry tokenRegistry;
     Token token;
-    MixTokenReceiverBase tokenReceiver;
+    MixTokenReceiverMock tokenReceiver;
     ItemStoreRegistry itemStoreRegistry;
     ItemStoreIpfsSha256 itemStore;
 
@@ -29,7 +41,7 @@ contract MixTokenTest is DSTest {
         bytes32 itemId = itemStore.create(hex"02", hex"1234");
         tokenRegistry = new MixTokenRegistry(itemStoreRegistry);
         token = new Token('a', 'A', 16, tokenRegistry, itemId);
-        tokenReceiver = new MixTokenReceiverBase();
+        tokenReceiver = new MixTokenReceiverMock();
     }
 
     function test1() external {

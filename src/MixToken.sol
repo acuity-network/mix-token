@@ -22,20 +22,9 @@ interface MixTokenInterface {
 contract MixTokenReceiverInterface {
 
     /**
-     * @return bytes4(keccak256("receiveMixToken(address,uint,bytes)"))
+     * @return bytes4(keccak256("onMixTokenReceived(address,uint256,bytes)")) (0x3c8c71b0)
      */
-    function receiveMixToken(address from, uint value, bytes calldata data) external returns (bytes4);
-}
-
-
-contract MixTokenReceiverBase is MixTokenReceiverInterface {
-
-    /**
-     * @return bytes4(keccak256("receiveMixToken(address,uint,bytes)"))
-     */
-    function receiveMixToken(address, uint, bytes calldata) external returns (bytes4) {
-        return 0xf2e0ed8f;
-    }
+    function onMixTokenReceived(address from, uint value, bytes calldata) external returns (bytes4);
 }
 
 
@@ -81,7 +70,7 @@ contract MixTokenBase is MixTokenInterface {
         accountBalance[to] += value;
         // Tell the receiver they received some tokens.
         if (_isContract(to)) {
-            require (MixTokenReceiverInterface(to).receiveMixToken(from, value, data) == 0xf2e0ed8f,
+            require (MixTokenReceiverInterface(to).onMixTokenReceived(from, value, data) == 0x3c8c71b0,
                 "Receiving contract has not implemented receiving method."
             );
         }
