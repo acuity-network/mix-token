@@ -24,8 +24,8 @@ contract MixTokenRegistry {
 
     function register(bytes32 itemId) external {
         ItemStoreInterface itemStore = itemStoreRegistry.getItemStore(itemId);
-        require(itemStore.getEnforceRevisions(itemId), "Item does not enforce revisions.");
-        require(!itemStore.getRetractable(itemId), "Item is retractable.");
+        require (itemStore.getEnforceRevisions(itemId), "Item does not enforce revisions.");
+        require (!itemStore.getRetractable(itemId), "Item is retractable.");
 
         tokenItemId[msg.sender] = itemId;
         itemIdToken[itemId] = msg.sender;
