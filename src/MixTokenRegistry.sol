@@ -1,6 +1,6 @@
 pragma solidity ^0.5.10;
 
-import "mix-item-store/ItemStoreRegistry.sol";
+import "mix-item-store/MixItemStoreRegistry.sol";
 
 
 contract MixTokenRegistry {
@@ -12,18 +12,18 @@ contract MixTokenRegistry {
     /**
      * @dev ItemStoreRegistry contract.
      */
-    ItemStoreRegistry public itemStoreRegistry;
+    MixItemStoreRegistry public itemStoreRegistry;
 
     /**
      * @param _itemStoreRegistry Address of the ItemStoreRegistry contract.
      */
-    constructor(ItemStoreRegistry _itemStoreRegistry) public {
+    constructor(MixItemStoreRegistry _itemStoreRegistry) public {
         // Store the address of the ItemStoreRegistry contract.
         itemStoreRegistry = _itemStoreRegistry;
     }
 
     function register(bytes32 itemId) external {
-        ItemStoreInterface itemStore = itemStoreRegistry.getItemStore(itemId);
+        MixItemStoreInterface itemStore = itemStoreRegistry.getItemStore(itemId);
         require (itemStore.getEnforceRevisions(itemId), "Item does not enforce revisions.");
         require (!itemStore.getRetractable(itemId), "Item is retractable.");
 

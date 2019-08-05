@@ -1,38 +1,40 @@
 pragma solidity ^0.5.10;
 
-import "mix-item-store/ItemStoreRegistry.sol";
+import "mix-item-store/MixItemStoreRegistry.sol";
 import "./MixTokenRegistry.sol";
 
 
 interface MixTokenInterface {
-    event Transfer(address indexed from, address indexed to, uint value, bytes data);
+    event Transfer(address indexed from, address indexed to, uint value);
     event Authorize(address indexed account, address indexed authorized);
     event Unauthorize(address indexed account, address indexed unauthorized);
     function transfer(address to, uint value) external;
-    function transfer(address to, uint value, bytes calldata data) external;
-    function transfer(address from, address to, uint value, bytes calldata data) external;
+    function transferFrom(address from, address to, uint value) external;
+    function authorize(address account) external;
+    function unauthorize(address account) external;
     function symbol() external view returns (string memory);
     function name() external view returns (string memory);
     function decimals() external view returns (uint);
     function totalSupply() external view returns (uint);
-    function balanceOf(address who) external view returns (uint);
-}
-
-
-contract MixTokenReceiverInterface {
-
-    /**
-     * @return bytes4(keccak256("onMixTokenReceived(address,uint256,bytes)")) (0x3c8c71b0)
-     */
-    function onMixTokenReceived(address from, uint value, bytes calldata) external returns (bytes4);
+    function balanceOf(address account) external view returns (uint);
+    function getAccountCount() external view returns (uint);
+    function getAccounts() external view returns (address[] memory);
+    function getAccountBalances() external view returns (address[] memory accounts, uint[] memory balances);
 }
 
 
 contract MixTokenBase is MixTokenInterface {
 
-    mapping (address => uint) accountBalance;
+    struct AccountState {
+        bool inUse;
+        uint128 balance;
+    }
+
+    mapping (address => AccountState) accountState;
 
     mapping (address => mapping (address => bool)) accountAuthorized;
+
+    address[] accountList;
 
     string tokenSymbol;
     string tokenName;
@@ -40,7 +42,7 @@ contract MixTokenBase is MixTokenInterface {
     uint tokenSupply;
 
     modifier hasSufficientBalance(address account, uint value) {
-        require (accountBalance[account] >= value, "Insufficient balance.");
+        require (balanceOf(account) >= value, "Insufficient balance.");
         _;
     }
 
@@ -56,42 +58,31 @@ contract MixTokenBase is MixTokenInterface {
         registry.register(itemId);
     }
 
-    function _isContract(address account) internal view returns (bool) {
-        uint length;
-        assembly {
-            length := extcodesize(account)
+    function _transfer(address from, address to, uint128 value) internal hasSufficientBalance(from, value) {
+        // If value is 0 there is nothing to do.
+        if (value == 0) {
+            return;
         }
-        return length > 0;
-    }
-
-    function _transfer(address from, address to, uint value, bytes memory data) internal hasSufficientBalance(from, value) {
+        // Add receiver to account list if they are not already on it.
+        if (!accountState[to].inUse) {
+            accountState[to].inUse = true;
+            accountList.push(to);
+        }
         // Update balances.
-        accountBalance[from] -= value;
-        accountBalance[to] += value;
-        // Tell the receiver they received some tokens.
-        if (_isContract(to)) {
-            require (MixTokenReceiverInterface(to).onMixTokenReceived(from, value, data) == 0x3c8c71b0,
-                "Receiving contract has not implemented receiving method."
-            );
-        }
+        accountState[from].balance -= value;
+        accountState[to].balance += value;
         // Log the event.
-        emit Transfer(from, to, value, data);
+        emit Transfer(from, to, value);
     }
 
     function transfer(address to, uint value) external {
         // Transfer the tokens.
-        bytes memory empty;
-        _transfer(msg.sender, to, value, empty);
+        _transfer(msg.sender, to, uint128(value));
     }
 
-    function transfer(address to, uint value, bytes calldata data) external {
+    function transferFrom(address from, address to, uint value) external isAuthorized(from) {
         // Transfer the tokens.
-        _transfer(msg.sender, to, value, data);
-    }
-
-    function transfer(address from, address to, uint value, bytes calldata data) external isAuthorized(from) {
-        // Transfer the tokens.
-        _transfer(from, to, value, data);
+        _transfer(from, to, uint128(value));
     }
 
     function authorize(address account) external {
@@ -120,8 +111,26 @@ contract MixTokenBase is MixTokenInterface {
         return tokenSupply;
     }
 
-    function balanceOf(address who) external view returns (uint) {
-        return accountBalance[who];
+    function balanceOf(address account) public view returns (uint) {
+        return accountState[account].balance;
+    }
+
+    function getAccountCount() external view returns (uint) {
+        return accountList.length;
+    }
+
+    function getAccounts() external view returns (address[] memory) {
+        return accountList;
+    }
+
+    function getAccountBalances() external view returns (address[] memory accounts, uint[] memory balances) {
+        uint count = accountList.length;
+        accounts = accountList;
+        balances = new uint[](count);
+
+        for (uint i = 0; i < count; i++) {
+            balances[i] = balanceOf(accounts[i]);
+        }
     }
 
 }
