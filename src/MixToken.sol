@@ -27,7 +27,7 @@ contract MixTokenBase is MixTokenInterface {
 
     struct AccountState {
         bool inUse;
-        uint128 balance;
+        int128 balance;
     }
 
     mapping (address => AccountState) accountState;
@@ -58,7 +58,7 @@ contract MixTokenBase is MixTokenInterface {
         registry.register(itemId);
     }
 
-    function _transfer(address from, address to, uint128 value) internal hasSufficientBalance(from, value) {
+    function _transfer(address from, address to, uint value) internal hasSufficientBalance(from, value) {
         // If value is 0 there is nothing to do.
         if (value == 0) {
             return;
@@ -69,20 +69,20 @@ contract MixTokenBase is MixTokenInterface {
             accountList.push(to);
         }
         // Update balances.
-        accountState[from].balance -= value;
-        accountState[to].balance += value;
+        accountState[from].balance -= int128(value);
+        accountState[to].balance += int128(value);
         // Log the event.
         emit Transfer(from, to, value);
     }
 
     function transfer(address to, uint value) external {
         // Transfer the tokens.
-        _transfer(msg.sender, to, uint128(value));
+        _transfer(msg.sender, to, value);
     }
 
     function transferFrom(address from, address to, uint value) external isAuthorized(from) {
         // Transfer the tokens.
-        _transfer(from, to, uint128(value));
+        _transfer(from, to, value);
     }
 
     function authorize(address account) external {
@@ -112,7 +112,7 @@ contract MixTokenBase is MixTokenInterface {
     }
 
     function balanceOf(address account) public view returns (uint) {
-        return accountState[account].balance;
+        return uint(accountState[account].balance);
     }
 
     function getAccountCount() external view returns (uint) {
