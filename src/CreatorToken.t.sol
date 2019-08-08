@@ -17,7 +17,7 @@ contract MixTokenTest is DSTest {
         mixItemStore = new MixItemStoreIpfsSha256(mixItemStoreRegistry);
         bytes32 itemId = mixItemStore.create(hex"02", hex"1234");
         mixTokenRegistry = new MixTokenRegistry(mixItemStoreRegistry);
-        token = new CreatorToken('a', 'A', 16, 1000, mixTokenRegistry, itemId);
+        token = new CreatorToken('a', 'A', 16, 1000, address(this), mixTokenRegistry, itemId);
     }
 
     function test1() external {

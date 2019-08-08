@@ -9,13 +9,13 @@ contract CreatorToken is MixTokenBase {
     address public tokenOwner;
     uint public tokenPayout;
 
-    constructor(string memory symbol, string memory name, uint decimals, uint payout, MixTokenRegistry tokenRegistry, bytes32 itemId) public
+    constructor(string memory symbol, string memory name, uint decimals, uint payout, address owner, MixTokenRegistry tokenRegistry, bytes32 itemId) public
         MixTokenBase(symbol, name, decimals, tokenRegistry, itemId)
     {
-        accountState[msg.sender].inUse = true;
-        accountList.push(msg.sender);
+        accountState[owner].inUse = true;
+        accountList.push(owner);
         tokenStart = block.timestamp;
-        tokenOwner = msg.sender;
+        tokenOwner = owner;
         tokenPayout = payout;
     }
 
