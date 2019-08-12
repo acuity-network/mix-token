@@ -8,8 +8,8 @@ interface MixTokenInterface {
     event Transfer(address indexed from, address indexed to, uint value);
     event Authorize(address indexed account, address indexed authorized);
     event Unauthorize(address indexed account, address indexed unauthorized);
-    function transfer(address to, uint value) external;
-    function transferFrom(address from, address to, uint value) external;
+    function transfer(address to, uint value) external returns (bool success);
+    function transferFrom(address from, address to, uint value) external returns (bool success);
     function authorize(address account) external;
     function unauthorize(address account) external;
     function symbol() external view returns (string memory);
@@ -75,14 +75,16 @@ contract MixTokenBase is MixTokenInterface {
         emit Transfer(from, to, value);
     }
 
-    function transfer(address to, uint value) external {
+    function transfer(address to, uint value) external returns (bool success) {
         // Transfer the tokens.
         _transfer(msg.sender, to, value);
+        return true;
     }
 
-    function transferFrom(address from, address to, uint value) external isAuthorized(from) {
+    function transferFrom(address from, address to, uint value) external isAuthorized(from) returns (bool success) {
         // Transfer the tokens.
         _transfer(from, to, value);
+        return true;
     }
 
     function authorize(address account) external {

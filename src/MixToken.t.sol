@@ -72,19 +72,19 @@ contract MixTokenTest is DSTest {
         assertEq(token.balanceOf(address(this)), 10);
         assertEq(token.balanceOf(address(0x1234)), 0);
         assertEq(token.balanceOf(address(0x2345)), 0);
-        token.transfer(address(0x1234), 5);
+        assertTrue(token.transfer(address(0x1234), 5));
         assertEq(token.balanceOf(address(this)), 5);
         assertEq(token.balanceOf(address(0x1234)), 5);
         assertEq(token.balanceOf(address(0x2345)), 0);
-        token.transfer(address(0x1234), 2);
+        assertTrue(token.transfer(address(0x1234), 2));
         assertEq(token.balanceOf(address(this)), 3);
         assertEq(token.balanceOf(address(0x1234)), 7);
         assertEq(token.balanceOf(address(0x2345)), 0);
-        token.transfer(address(0x2345), 1);
+        assertTrue(token.transfer(address(0x2345), 1));
         assertEq(token.balanceOf(address(this)), 2);
         assertEq(token.balanceOf(address(0x1234)), 7);
         assertEq(token.balanceOf(address(0x2345)), 1);
-        token.transfer(address(0x2345), 2);
+        assertTrue(token.transfer(address(0x2345), 2));
         assertEq(token.balanceOf(address(this)), 0);
         assertEq(token.balanceOf(address(0x1234)), 7);
         assertEq(token.balanceOf(address(0x2345)), 3);
@@ -117,19 +117,19 @@ contract MixTokenTest is DSTest {
         assertEq(token.balanceOf(address(mockAccount)), 0);
         assertEq(token.balanceOf(address(0x1234)), 0);
         mockAccount.authorize(address(this));
-        token.transfer(address(mockAccount), 10);
+        assertTrue(token.transfer(address(mockAccount), 10));
         assertEq(token.balanceOf(address(mockAccount)), 10);
         assertEq(token.balanceOf(address(this)), 0);
         assertEq(token.balanceOf(address(0x1234)), 0);
-        token.transferFrom(address(mockAccount), address(this), 3);
+        assertTrue(token.transferFrom(address(mockAccount), address(this), 3));
         assertEq(token.balanceOf(address(mockAccount)), 7);
         assertEq(token.balanceOf(address(this)), 3);
         assertEq(token.balanceOf(address(0x1234)), 0);
-        token.transferFrom(address(mockAccount), address(0x1234), 5);
+        assertTrue(token.transferFrom(address(mockAccount), address(0x1234), 5));
         assertEq(token.balanceOf(address(mockAccount)), 2);
         assertEq(token.balanceOf(address(this)), 3);
         assertEq(token.balanceOf(address(0x1234)), 5);
-        token.transferFrom(address(mockAccount), address(this), 2);
+        assertTrue(token.transferFrom(address(mockAccount), address(this), 2));
         assertEq(token.balanceOf(address(mockAccount)), 0);
         assertEq(token.balanceOf(address(this)), 5);
         assertEq(token.balanceOf(address(0x1234)), 5);
@@ -149,7 +149,7 @@ contract MixTokenTest is DSTest {
         assertEq(balances.length, 1);
         assertEq(balances[0], 10);
 
-        token.transfer(address(0x1234), 5);
+        assertTrue(token.transfer(address(0x1234), 5));
         assertEq(token.getAccountCount(), 2);
         accounts = token.getAccounts();
         assertEq(accounts.length, 2);
@@ -163,7 +163,7 @@ contract MixTokenTest is DSTest {
         assertEq(balances[0], 5);
         assertEq(balances[1], 5);
 
-        token.transfer(address(0x1234), 1);
+        assertTrue(token.transfer(address(0x1234), 1));
         assertEq(token.getAccountCount(), 2);
         accounts = token.getAccounts();
         assertEq(accounts.length, 2);
@@ -177,7 +177,7 @@ contract MixTokenTest is DSTest {
         assertEq(balances[0], 4);
         assertEq(balances[1], 6);
 
-        token.transfer(address(0x2345), 4);
+        assertTrue(token.transfer(address(0x2345), 4));
         assertEq(token.getAccountCount(), 3);
         accounts = token.getAccounts();
         assertEq(accounts.length, 3);
@@ -193,7 +193,6 @@ contract MixTokenTest is DSTest {
         assertEq(balances[0], 0);
         assertEq(balances[1], 6);
         assertEq(balances[2], 4);
-
     }
 
 }
