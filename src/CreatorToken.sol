@@ -10,12 +10,12 @@ contract CreatorToken is MixTokenInterface, MixTokenBase {
     uint public initialBalance;
     uint public dailyPayout;
 
-    constructor(string memory symbol, string memory name, uint _initialBalance, uint _dailyPayout, address _owner, MixTokenRegistry tokenRegistry, bytes32 itemId) public
+    constructor(string memory symbol, string memory name, MixTokenRegistry tokenRegistry, bytes32 itemId, address _owner, uint _initialBalance, uint _dailyPayout) public
         MixTokenBase(symbol, name, tokenRegistry, itemId)
     {
+        start = block.timestamp;
         accountState[_owner].inUse = true;
         accountList.push(_owner);
-        start = block.timestamp;
         owner = _owner;
         initialBalance = _initialBalance;
         dailyPayout = _dailyPayout;

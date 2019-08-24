@@ -19,7 +19,7 @@ contract CreatorTokenTest is DSTest {
         mixItemStore = new MixItemStoreIpfsSha256(mixItemStoreRegistry);
         bytes32 itemId = mixItemStore.create(hex"02", hex"1234");
         mixTokenRegistry = new MixTokenRegistry(mixItemStoreRegistry);
-        token = new CreatorToken('a', 'A', 10, 1, address(this), mixTokenRegistry, itemId);
+        token = new CreatorToken('a', 'A', mixTokenRegistry, itemId, address(this), 10, 1);
         mockAccount = new MockAccount(token);
     }
 
