@@ -35,7 +35,6 @@ contract MixTokenBase {
 
     string public symbol;
     string public name;
-    uint public decimals;
 
     event Transfer(address indexed from, address indexed to, uint value);
     event Authorize(address indexed account, address indexed authorized);
@@ -51,10 +50,9 @@ contract MixTokenBase {
         _;
     }
 
-    constructor(string memory _symbol, string memory _name, uint _decimals, MixTokenRegistry registry, bytes32 itemId) public {
+    constructor(string memory _symbol, string memory _name, MixTokenRegistry registry, bytes32 itemId) public {
         symbol = _symbol;
         name = _name;
-        decimals = _decimals;
         registry.register(itemId);
     }
 
@@ -95,6 +93,10 @@ contract MixTokenBase {
     function unauthorize(address account) external {
         delete accountAuthorized[msg.sender][account];
         emit Unauthorize(msg.sender, account);
+    }
+
+    function decimals() external view returns (uint) {
+        return 18;
     }
 
     function balanceOf(address account) public view returns (uint) {

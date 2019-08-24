@@ -19,14 +19,14 @@ contract CreatorTokenTest is DSTest {
         mixItemStore = new MixItemStoreIpfsSha256(mixItemStoreRegistry);
         bytes32 itemId = mixItemStore.create(hex"02", hex"1234");
         mixTokenRegistry = new MixTokenRegistry(mixItemStoreRegistry);
-        token = new CreatorToken('a', 'A', 16, 10, 1, address(this), mixTokenRegistry, itemId);
+        token = new CreatorToken('a', 'A', 10, 1, address(this), mixTokenRegistry, itemId);
         mockAccount = new MockAccount(token);
     }
 
     function testConstants() public {
         assertEq0(bytes(token.symbol()), bytes('a'));
         assertEq0(bytes(token.name()), bytes('A'));
-        assertEq(token.decimals(), 16);
+        assertEq(token.decimals(), 18);
         assertEq(token.totalSupply(), 10);
         assertEq(token.start(), block.timestamp);
         assertEq(token.owner(), address(this));
