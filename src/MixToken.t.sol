@@ -5,7 +5,7 @@ import "mix-item-store/MixItemStoreIpfsSha256.sol";
 import "./MixToken.sol";
 
 
-contract Token is MixTokenBase {
+contract Token is MixTokenInterface, MixTokenBase {
 
     constructor(string memory symbol, string memory name, uint decimals, MixTokenRegistry tokenRegistry, bytes32 itemId) public
         MixTokenBase(symbol, name, decimals, tokenRegistry, itemId)
@@ -13,7 +13,10 @@ contract Token is MixTokenBase {
         accountState[msg.sender].inUse = true;
         accountState[msg.sender].balance = 10;
         accountList.push(msg.sender);
-        tokenSupply = 10;
+    }
+
+    function totalSupply() external view returns (uint) {
+        return 10;
     }
 
 }

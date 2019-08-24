@@ -28,10 +28,10 @@ contract CreatorTokenTest is DSTest {
         assertEq0(bytes(token.name()), bytes('A'));
         assertEq(token.decimals(), 16);
         assertEq(token.totalSupply(), 10);
-        assertEq(token.tokenStart(), block.timestamp);
-        assertEq(token.tokenOwner(), address(this));
-        assertEq(token.tokenInitialBalance(), 10);
-        assertEq(token.tokenDailyPayout(), 1);
+        assertEq(token.start(), block.timestamp);
+        assertEq(token.owner(), address(this));
+        assertEq(token.initialBalance(), 10);
+        assertEq(token.dailyPayout(), 1);
     }
 
     function testControlTransferInsufficientBalance() public {

@@ -5,9 +5,6 @@ import "./MixTokenRegistry.sol";
 
 
 interface MixTokenInterface {
-    event Transfer(address indexed from, address indexed to, uint value);
-    event Authorize(address indexed account, address indexed authorized);
-    event Unauthorize(address indexed account, address indexed unauthorized);
     function transfer(address to, uint value) external returns (bool success);
     function transferFrom(address from, address to, uint value) external returns (bool success);
     function authorize(address account) external;
@@ -23,7 +20,7 @@ interface MixTokenInterface {
 }
 
 
-contract MixTokenBase is MixTokenInterface {
+contract MixTokenBase {
 
     struct AccountState {
         bool inUse;
@@ -36,10 +33,13 @@ contract MixTokenBase is MixTokenInterface {
 
     address[] accountList;
 
-    string tokenSymbol;
-    string tokenName;
-    uint tokenDecimals;
-    uint tokenSupply;
+    string public symbol;
+    string public name;
+    uint public decimals;
+
+    event Transfer(address indexed from, address indexed to, uint value);
+    event Authorize(address indexed account, address indexed authorized);
+    event Unauthorize(address indexed account, address indexed unauthorized);
 
     modifier hasSufficientBalance(address account, uint value) {
         require (balanceOf(account) >= value, "Insufficient balance.");
@@ -51,10 +51,10 @@ contract MixTokenBase is MixTokenInterface {
         _;
     }
 
-    constructor(string memory symbol, string memory name, uint decimals, MixTokenRegistry registry, bytes32 itemId) public {
-        tokenSymbol = symbol;
-        tokenName = name;
-        tokenDecimals = decimals;
+    constructor(string memory _symbol, string memory _name, uint _decimals, MixTokenRegistry registry, bytes32 itemId) public {
+        symbol = _symbol;
+        name = _name;
+        decimals = _decimals;
         registry.register(itemId);
     }
 
@@ -95,22 +95,6 @@ contract MixTokenBase is MixTokenInterface {
     function unauthorize(address account) external {
         delete accountAuthorized[msg.sender][account];
         emit Unauthorize(msg.sender, account);
-    }
-
-    function symbol() external view returns (string memory) {
-        return tokenSymbol;
-    }
-
-    function name() external view returns (string memory) {
-        return tokenName;
-    }
-
-    function decimals() external view returns (uint) {
-        return tokenDecimals;
-    }
-
-    function totalSupply() external view returns (uint) {
-        return tokenSupply;
     }
 
     function balanceOf(address account) public view returns (uint) {
