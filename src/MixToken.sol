@@ -78,13 +78,13 @@ contract MixTokenBase is MixTokenInterface {
     function transfer(address to, uint value) external returns (bool success) {
         // Transfer the tokens.
         _transfer(msg.sender, to, value);
-        return true;
+        success = true;
     }
 
     function transferFrom(address from, address to, uint value) external isAuthorized(from) returns (bool success) {
         // Transfer the tokens.
         _transfer(from, to, value);
-        return true;
+        success = true;
     }
 
     function authorize(address account) external {
