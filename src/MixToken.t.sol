@@ -20,9 +20,9 @@ contract Token is MixTokenBase {
 
 contract MockAccount {
 
-    Token token;
+    MixTokenBase token;
 
-    constructor(Token _token) public {
+    constructor(MixTokenBase _token) public {
         token = _token;
     }
 
