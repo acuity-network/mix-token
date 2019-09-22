@@ -88,6 +88,10 @@ contract MixTokenBase {
         return uint(accountState[account].balance);
     }
 
+    function getAccountAuthorized(address owner, address account) external view returns (bool) {
+        return accountAuthorized[owner][account];
+    }
+
     function getAccountCount() external view returns (uint) {
         return accountList.length;
     }

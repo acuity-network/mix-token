@@ -119,7 +119,9 @@ contract MixTokenTest is DSTest {
         assertEq(token.balanceOf(address(this)), 10);
         assertEq(token.balanceOf(address(mockAccount)), 0);
         assertEq(token.balanceOf(address(0x1234)), 0);
+        assertTrue(!token.getAccountAuthorized(address(mockAccount), address(this)));
         mockAccount.authorize(address(this));
+        assertTrue(token.getAccountAuthorized(address(mockAccount), address(this)));
         assertTrue(token.transfer(address(mockAccount), 10));
         assertEq(token.balanceOf(address(mockAccount)), 10);
         assertEq(token.balanceOf(address(this)), 0);
