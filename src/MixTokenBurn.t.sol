@@ -64,4 +64,27 @@ contract MixTokenBurnTest is DSTest {
         assertEq(mixTokenBurn.getTokensBurned(address(this), token), 10);
     }
 
+    function testGetTokensBurnedMultiple() public {
+        bytes32 itemId = mixItemStore.create(hex"0201", hex"1234");
+        MixTokenInterface[] memory tokens = new MixTokenInterface[](4);
+        tokens[0] = new Token('a', 'A', mixTokenRegistry, itemId);
+        tokens[1] = new Token('a', 'A', mixTokenRegistry, itemId);
+        tokens[2] = new Token('a', 'A', mixTokenRegistry, itemId);
+        tokens[3] = new Token('a', 'A', mixTokenRegistry, itemId);
+        tokens[0].authorize(address(mixTokenBurn));
+        tokens[1].authorize(address(mixTokenBurn));
+        tokens[2].authorize(address(mixTokenBurn));
+        tokens[3].authorize(address(mixTokenBurn));
+        mixTokenBurn.burnTokens(tokens[0], 5);
+        mixTokenBurn.burnTokens(tokens[1], 4);
+        mixTokenBurn.burnTokens(tokens[2], 3);
+        mixTokenBurn.burnTokens(tokens[3], 2);
+        uint[] memory burned = mixTokenBurn.getTokensBurnedMultiple(address(this), tokens);
+        assertEq(burned.length, 4);
+        assertEq(burned[0], 5);
+        assertEq(burned[1], 4);
+        assertEq(burned[2], 3);
+        assertEq(burned[3], 2);
+    }
+
 }
