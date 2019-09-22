@@ -170,4 +170,13 @@ contract CreatorTokenTest is DSTest {
         assertEq(balances[2], 4);
     }
 
+    function testSupportsInterface() public {
+        assertTrue(!token.supportsInterface(0x00000000));
+        assertTrue(!token.supportsInterface(0xffffffff));
+        assertTrue(token.supportsInterface(0x01ffc9a7));    // EIP165
+
+        MixTokenInterfaceId mixTokenInterfaceId = new MixTokenInterfaceId();
+        assertTrue(token.supportsInterface(mixTokenInterfaceId.getInterfaceId()));
+    }
+
 }
