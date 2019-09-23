@@ -2,7 +2,7 @@ pragma solidity ^0.5.11;
 
 import "ds-test/test.sol";
 import "mix-item-store/MixItemStoreIpfsSha256.sol";
-import "./MixToken.sol";
+import "./MixTokenBase.sol";
 import "./MixTokenBurn.sol";
 
 contract Token is MixTokenInterface, MixTokenBase {

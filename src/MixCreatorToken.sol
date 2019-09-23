@@ -1,10 +1,10 @@
 pragma solidity ^0.5.11;
 
 import "./ERC165.sol";
-import "./MixToken.sol";
+import "./MixTokenBase.sol";
 
 
-contract CreatorToken is ERC165, MixTokenInterface, MixTokenBase {
+contract MixCreatorToken is ERC165, MixTokenInterface, MixTokenBase {
 
     uint public start;
     address public owner;

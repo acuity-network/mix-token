@@ -2,16 +2,16 @@ pragma solidity ^0.5.11;
 
 import "ds-test/test.sol";
 import "mix-item-store/MixItemStoreIpfsSha256.sol";
-import "./CreatorToken.sol";
-import "./MixToken.t.sol";
+import "./MixCreatorToken.sol";
+import "./MixTokenBase.t.sol";
 
 
-contract CreatorTokenTest is DSTest {
+contract MixCreatorTokenTest is DSTest {
 
     MixTokenRegistry mixTokenRegistry;
     MixItemStoreRegistry mixItemStoreRegistry;
     MixItemStoreIpfsSha256 mixItemStore;
-    CreatorToken token;
+    MixCreatorToken token;
     MockAccount mockAccount;
 
     function setUp() public {
@@ -19,7 +19,7 @@ contract CreatorTokenTest is DSTest {
         mixItemStore = new MixItemStoreIpfsSha256(mixItemStoreRegistry);
         bytes32 itemId = mixItemStore.create(hex"02", hex"1234");
         mixTokenRegistry = new MixTokenRegistry(mixItemStoreRegistry);
-        token = new CreatorToken('a', 'A', mixTokenRegistry, itemId, address(this), 10, 1);
+        token = new MixCreatorToken('a', 'A', mixTokenRegistry, itemId, address(this), 10, 1);
         mockAccount = new MockAccount(token);
     }
 
