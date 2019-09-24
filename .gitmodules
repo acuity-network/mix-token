@@ -4,3 +4,6 @@
 [submodule "lib/mix-item-store"]
 	path = lib/mix-item-store
 	url = https://github.com/mix-blockchain/mix-item-store
+[submodule "lib/mix-item-dag"]
+	path = lib/mix-item-dag
+	url = https://github.com/mix-blockchain/mix-item-dag
