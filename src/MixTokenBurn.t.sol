@@ -27,6 +27,7 @@ contract MixTokenBurnTest is DSTest {
     Token token;
     MixItemStoreRegistry mixItemStoreRegistry;
     MixItemStoreIpfsSha256 mixItemStore;
+    MixItemDagOneParent mixTokenItems;
     MixTokenBurn mixTokenBurn;
 
     function setUp() public {
@@ -35,7 +36,8 @@ contract MixTokenBurnTest is DSTest {
         bytes32 itemId = mixItemStore.create(hex"02", hex"1234");
         mixTokenRegistry = new MixTokenRegistry(mixItemStoreRegistry);
         token = new Token('a', 'A', mixTokenRegistry, itemId);
-        mixTokenBurn = new MixTokenBurn();
+        mixTokenItems = new MixItemDagOneParent(mixItemStoreRegistry);
+        mixTokenBurn = new MixTokenBurn(mixTokenRegistry, mixTokenItems);
         token.authorize(address(mixTokenBurn));
     }
 
