@@ -13,6 +13,11 @@ import "./MixTokenRegistry.sol";
 contract MixTokenBurn {
 
     /**
+     * Mapping of account to list of tokens that it has burned.
+     */
+    mapping (address => address[]) accountTokensBurnedList;
+
+    /**
      * Mapping of token to list of accounts that have burned it.
      */
     mapping (address => address[]) tokenAccountsBurnedList;
@@ -21,6 +26,11 @@ contract MixTokenBurn {
      * Mapping of token to mapping of account to quantity burned.
      */
     mapping (address => mapping(address => uint)) tokenAccountBurned;
+
+    /**
+     * Mapping of account to list of itemIds that it has burned the token for.
+     */
+    mapping (address => bytes32[]) accountItemsBurnedList;
 
     /**
      * Mapping of itemId to list of accounts that have burned the token for the item.
@@ -83,6 +93,7 @@ contract MixTokenBurn {
         // Update the record of tokens burned.
         if (tokenAccountBurned[address(token)][msg.sender] == 0) {
             tokenAccountsBurnedList[address(token)].push(msg.sender);
+            accountTokensBurnedList[msg.sender].push(address(token));
         }
         tokenAccountBurned[address(token)][msg.sender] += amount;
         // Emit the event.
@@ -102,10 +113,12 @@ contract MixTokenBurn {
         // Update the record of tokens burned.
         if (tokenAccountBurned[address(token)][msg.sender] == 0) {
             tokenAccountsBurnedList[address(token)].push(msg.sender);
+            accountTokensBurnedList[msg.sender].push(address(token));
         }
         tokenAccountBurned[address(token)][msg.sender] += amount;
         if (itemAccountBurned[itemId][msg.sender] == 0) {
             itemAccountsBurnedList[itemId].push(msg.sender);
+            accountItemsBurnedList[msg.sender].push(itemId);
         }
         itemAccountBurned[itemId][msg.sender] += amount;
         // Emit the event.
