@@ -41,6 +41,14 @@ contract MixTokenBurnTest is DSTest {
         token.authorize(address(mixTokenBurn));
     }
 
+    function testControlBurnTokensZero() public {
+        mixTokenBurn.burnTokens(token, 1);
+    }
+
+    function testFailBurnTokensZero() public {
+        mixTokenBurn.burnTokens(token, 0);
+    }
+
     function testControlBurnTokensNotEnoughTokens() public {
         mixTokenBurn.burnTokens(token, 10);
     }
