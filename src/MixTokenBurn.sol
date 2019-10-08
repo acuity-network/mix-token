@@ -82,7 +82,7 @@ contract MixTokenBurn {
     }
 
     /**
-     * @dev Burn senders tokens.
+     * @dev Burn sender's tokens.
      * @param token Address of the token's contract.
      * @param amount Amount of tokens burned.
      */
@@ -101,7 +101,7 @@ contract MixTokenBurn {
     }
 
     /**
-     * @dev Burn senders tokens.
+     * @dev Burn sender's tokens in association with a specific item.
      * @param token Address of the token's contract.
      * @param itemId Item to burn this token for.
      * @param amount Amount of tokens burned.
