@@ -169,6 +169,22 @@ contract MixTokenBurn {
         emit BurnTokens(token, 0, msg.sender, amount);
     }
 
+    function getBurnTokensPrevNext(address token, uint amount) external view nonZero(amount) returns (address prev, address next) {
+        // Get accountBurned mapping.
+        mapping(address => AccountBurnedLinked) storage accountBurned = tokenAccountBurned[token];
+        // Get total.
+        uint total = accountBurned[msg.sender].amount + amount;
+        // Get account with most burned.
+        prev = tokenAccountBurnedMost[token];
+        // Search for last account that has burned more than sender.
+        // accountBurned[0].amount == 0
+        while (accountBurned[prev].amount > total) {
+            prev = accountBurned[prev].next;
+        }
+        // Get next.
+        next = accountBurned[prev].next;
+    }
+
     /**
      * @dev Burn sender's tokens in association with a specific item.
      * @param token Address of the token's contract.
