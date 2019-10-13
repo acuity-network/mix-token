@@ -12,20 +12,31 @@ import "./MixTokenRegistry.sol";
  */
 contract MixTokenBurn {
 
+    struct AccountBurnedLinked {
+        address prev;
+        address next;
+        uint amount;
+    }
+
     /**
      * Mapping of account to list of tokens that it has burned.
      */
     mapping (address => address[]) accountTokensBurnedList;
 
     /**
-     * Mapping of token to list of accounts that have burned it.
+     * Mapping of token to account that has burned the most of that token.
      */
-    mapping (address => address[]) tokenAccountsBurnedList;
+    mapping (address => address) tokenAccountBurnedMost;
 
     /**
-     * Mapping of token to mapping of account to quantity burned.
+     * Mapping of token to account that has burned the least of that token.
      */
-    mapping (address => mapping(address => uint)) tokenAccountBurned;
+    mapping (address => address) tokenAccountBurnedLeast;
+
+    /**
+     * Mapping of token to mapping of account to AccountBurnedLinked.
+     */
+    mapping (address => mapping(address => AccountBurnedLinked)) tokenAccountBurned;
 
     /**
      * Mapping of account to list of itemIds that it has burned the token for.
@@ -33,14 +44,19 @@ contract MixTokenBurn {
     mapping (address => bytes32[]) accountItemsBurnedList;
 
     /**
-     * Mapping of itemId to list of accounts that have burned the token for the item.
+     * Mapping of itemId to account that has burned the most tokens for that item.
      */
-    mapping (bytes32 => address[]) itemAccountsBurnedList;
+    mapping (bytes32 => address) itemAccountBurnedMost;
+
+    /**
+     * Mapping of itemId to account that has burned the least tokens for that item.
+     */
+    mapping (bytes32 => address) itemAccountBurnedLeast;
 
     /**
      * Mapping of itemId to mapping of account to quantity of tokens burned for the item.
      */
-    mapping (bytes32 => mapping(address => uint)) itemAccountBurned;
+    mapping (bytes32 => mapping(address => AccountBurnedLinked)) itemAccountBurned;
 
     MixTokenRegistry tokenRegistry;
     MixItemDagOneParent tokenItems;
@@ -81,21 +97,74 @@ contract MixTokenBurn {
         tokenItems = _tokenItems;
     }
 
+    function _burnTokens(address token, uint amount, address prev, address next) internal {
+        // Get accountBurned mapping.
+        mapping(address => AccountBurnedLinked) storage accountBurned = tokenAccountBurned[token];
+        // Update list of tokens burned by this account.
+        if (accountBurned[msg.sender].amount == 0) {
+            accountTokensBurnedList[msg.sender].push(token);
+        }
+        // Get total burned.
+        uint total = accountBurned[msg.sender].amount + amount;
+        accountBurned[msg.sender].amount = total;
+        // Check new previous.
+        if (prev == address(0)) {
+            require (next == tokenAccountBurnedMost[token], "Next account must be account that has burned most when no previous account supplied.");
+        }
+        else {
+            require (total < accountBurned[prev].amount, "Total burned must be less than previous account.");
+        }
+        // Check new next.
+        if (next == address(0)) {
+            require (prev == tokenAccountBurnedLeast[token], "Previous account must be account that has burned least when no next account supplied.");
+        }
+        else {
+            require (total > accountBurned[next].amount, "Total burned must be more than next account.");
+        }
+        // Is the account staying in the same position?
+        if (next == accountBurned[msg.sender].next && prev == accountBurned[msg.sender].prev) {
+            // Nothing more to do.
+            return;
+        }
+        // Remove account links from list.
+        if (accountBurned[msg.sender].prev != address(0)) {
+            accountBurned[accountBurned[msg.sender].prev].next = accountBurned[msg.sender].next;
+        }
+        if (accountBurned[msg.sender].next != address(0)) {
+            accountBurned[accountBurned[msg.sender].next].prev = accountBurned[msg.sender].prev;
+        }
+        // Check if we are now first.
+        if (prev == address(0)) {
+            tokenAccountBurnedMost[token] = msg.sender;
+        }
+        else {
+            require (accountBurned[prev].next == next, "Account must be after previous.");
+            accountBurned[prev].next = msg.sender;
+        }
+        // Check if we are now last.
+        if (next == address(0)) {
+            tokenAccountBurnedLeast[token] = msg.sender;
+        }
+        else {
+            require (accountBurned[next].prev == prev, "Account must be before next.");
+            accountBurned[next].prev = msg.sender;
+        }
+        // Add account links to list.
+        accountBurned[msg.sender].prev = prev;
+        accountBurned[msg.sender].next = next;
+    }
+
     /**
      * @dev Burn sender's tokens.
      * @param token Address of the token's contract.
      * @param amount Amount of tokens burned.
      */
-    function burnTokens(MixTokenInterface token, uint amount) external nonZero(amount) {
+    function burnTokens(MixTokenInterface token, uint amount, address prev, address next) external nonZero(amount) {
         // Transfer the tokens to this contract.
         // Wrap with require() in case the token contract returns false on error instead of throwing.
         require(token.transferFrom(msg.sender, address(this), amount), "Token transfer failed.");
-        // Update the record of tokens burned.
-        if (tokenAccountBurned[address(token)][msg.sender] == 0) {
-            tokenAccountsBurnedList[address(token)].push(msg.sender);
-            accountTokensBurnedList[msg.sender].push(address(token));
-        }
-        tokenAccountBurned[address(token)][msg.sender] += amount;
+        // Record the tokens as burned.
+        _burnTokens(address(token), amount, prev, next);
         // Emit the event.
         emit BurnTokens(token, 0, msg.sender, amount);
     }
@@ -111,16 +180,14 @@ contract MixTokenBurn {
         // Wrap with require() in case the token contract returns false on error instead of throwing.
         require(token.transferFrom(msg.sender, address(this), amount), "Token transfer failed.");
         // Update the record of tokens burned.
-        if (tokenAccountBurned[address(token)][msg.sender] == 0) {
-            tokenAccountsBurnedList[address(token)].push(msg.sender);
+        if (tokenAccountBurned[address(token)][msg.sender].amount == 0) {
             accountTokensBurnedList[msg.sender].push(address(token));
         }
-        tokenAccountBurned[address(token)][msg.sender] += amount;
-        if (itemAccountBurned[itemId][msg.sender] == 0) {
-            itemAccountsBurnedList[itemId].push(msg.sender);
+        tokenAccountBurned[address(token)][msg.sender].amount += amount;
+        if (itemAccountBurned[itemId][msg.sender].amount == 0) {
             accountItemsBurnedList[msg.sender].push(itemId);
         }
-        itemAccountBurned[itemId][msg.sender] += amount;
+        itemAccountBurned[itemId][msg.sender].amount += amount;
         // Emit the event.
         emit BurnTokens(token, itemId, msg.sender, amount);
     }
@@ -132,7 +199,7 @@ contract MixTokenBurn {
      * @return Amount of these tokens that this account has burned.
      */
     function getTokensBurned(address account, MixTokenInterface token) external view returns (uint) {
-        return tokenAccountBurned[address(token)][account];
+        return tokenAccountBurned[address(token)][account].amount;
     }
 
     /**
@@ -148,7 +215,7 @@ contract MixTokenBurn {
         burned = new uint[](count);
         // Populate return array.
         for (uint i = 0; i < count; i++) {
-            burned[i] = tokenAccountBurned[address(tokens[i])][account];
+            burned[i] = tokenAccountBurned[address(tokens[i])][account].amount;
         }
     }
 
