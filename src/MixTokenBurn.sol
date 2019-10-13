@@ -119,7 +119,7 @@ contract MixTokenBurn {
             require (prev == tokenAccountBurnedLeast[token], "Previous account must be account that has burned least when no next account supplied.");
         }
         else {
-            require (total > accountBurned[next].amount, "Total burned must be more than next account.");
+            require (total >= accountBurned[next].amount, "Total burned must be more than next account.");
         }
         // Is the account staying in the same position?
         if (next == accountBurned[msg.sender].next && prev == accountBurned[msg.sender].prev) {
