@@ -114,8 +114,9 @@ contract MixTokenBurn {
         if (accountBurned[msg.sender].amount == 0) {
             accountTokensBurnedList[msg.sender].push(token);
         }
-        // Get total burned.
+        // Update total burned for this token.
         tokenBurnedTotal[token] += amount;
+        // Get total burned by sender for this token.
         uint total = accountBurned[msg.sender].amount + amount;
         accountBurned[msg.sender].amount = total;
         // Check new previous.
@@ -123,14 +124,14 @@ contract MixTokenBurn {
             require (next == tokenAccountBurnedMost[token], "Next account must be account that has burned most when no previous account supplied.");
         }
         else {
-            require (total < accountBurned[prev].amount, "Total burned must be less than previous account.");
+            require (total <= accountBurned[prev].amount, "Total burned must be less than or equal to previous account.");
         }
         // Check new next.
         if (next == address(0)) {
             require (prev == tokenAccountBurnedLeast[token], "Previous account must be account that has burned least when no next account supplied.");
         }
         else {
-            require (total >= accountBurned[next].amount, "Total burned must be more than next account.");
+            require (total > accountBurned[next].amount, "Total burned must be more than next account.");
         }
         // Is the account staying in the same position?
         if (next == accountBurned[msg.sender].next && prev == accountBurned[msg.sender].prev) {
@@ -189,7 +190,7 @@ contract MixTokenBurn {
         next = tokenAccountBurnedMost[token];
         // Search for first account that has burned less than sender.
         // accountBurned[0].amount == 0
-        while (accountBurned[next].amount > total) {
+        while (total <= accountBurned[next].amount) {
             next = accountBurned[next].next;
         }
         // Are we in the same position?
