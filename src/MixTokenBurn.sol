@@ -36,7 +36,7 @@ contract MixTokenBurn {
     /**
      * Mapping of token to mapping of account to AccountBurnedLinked.
      */
-    mapping (address => mapping(address => AccountBurnedLinked)) tokenAccountBurned;
+    mapping (address => mapping (address => AccountBurnedLinked)) tokenAccountBurned;
 
     /**
      * Mapping of token to total burned.
@@ -61,7 +61,7 @@ contract MixTokenBurn {
     /**
      * Mapping of itemId to mapping of account to quantity of tokens burned for the item.
      */
-    mapping (bytes32 => mapping(address => AccountBurnedLinked)) itemAccountBurned;
+    mapping (bytes32 => mapping (address => AccountBurnedLinked)) itemAccountBurned;
 
     /**
      * Mapping of item to total burned for the item.
@@ -109,7 +109,7 @@ contract MixTokenBurn {
 
     function _burnTokens(address token, uint amount, address prev, address next) internal {
         // Get accountBurned mapping.
-        mapping(address => AccountBurnedLinked) storage accountBurned = tokenAccountBurned[token];
+        mapping (address => AccountBurnedLinked) storage accountBurned = tokenAccountBurned[token];
         // Update list of tokens burned by this account.
         if (accountBurned[msg.sender].amount == 0) {
             accountTokensBurnedList[msg.sender].push(token);
@@ -172,8 +172,8 @@ contract MixTokenBurn {
      */
     function burnTokens(MixTokenInterface token, uint amount, address prev, address next) external nonZero(amount) {
         // Transfer the tokens to this contract.
-        // Wrap with require() in case the token contract returns false on error instead of throwing.
-        require(token.transferFrom(msg.sender, address(this), amount), "Token transfer failed.");
+        // Wrap with require () in case the token contract returns false on error instead of throwing.
+        require (token.transferFrom(msg.sender, address(this), amount), "Token transfer failed.");
         // Record the tokens as burned.
         _burnTokens(address(token), amount, prev, next);
         // Emit the event.
@@ -182,18 +182,24 @@ contract MixTokenBurn {
 
     function getBurnTokensPrevNext(address token, uint amount) external view nonZero(amount) returns (address prev, address next) {
         // Get accountBurned mapping.
-        mapping(address => AccountBurnedLinked) storage accountBurned = tokenAccountBurned[token];
+        mapping (address => AccountBurnedLinked) storage accountBurned = tokenAccountBurned[token];
         // Get total.
         uint total = accountBurned[msg.sender].amount + amount;
         // Get account with most burned.
-        prev = tokenAccountBurnedMost[token];
-        // Search for last account that has burned more than sender.
+        next = tokenAccountBurnedMost[token];
+        // Search for first account that has burned less than sender.
         // accountBurned[0].amount == 0
-        while (accountBurned[prev].amount > total) {
-            prev = accountBurned[prev].next;
+        while (accountBurned[next].amount > total) {
+            next = accountBurned[next].next;
         }
-        // Get next.
-        next = accountBurned[prev].next;
+        // Are we in the same position?
+        if (next == msg.sender) {
+            prev = accountBurned[msg.sender].prev;
+            next = accountBurned[msg.sender].next;
+        }
+        else {
+            prev = accountBurned[next].prev;
+        }
     }
 
     /**
@@ -204,8 +210,8 @@ contract MixTokenBurn {
      */
     function burnTokensForItem(MixTokenInterface token, bytes32 itemId, uint amount) external tokenListsItem(token, itemId) nonZero(amount) {
         // Transfer the tokens to this contract.
-        // Wrap with require() in case the token contract returns false on error instead of throwing.
-        require(token.transferFrom(msg.sender, address(this), amount), "Token transfer failed.");
+        // Wrap with require () in case the token contract returns false on error instead of throwing.
+        require (token.transferFrom(msg.sender, address(this), amount), "Token transfer failed.");
         // Update the record of tokens burned.
         if (tokenAccountBurned[address(token)][msg.sender].amount == 0) {
             accountTokensBurnedList[msg.sender].push(address(token));
