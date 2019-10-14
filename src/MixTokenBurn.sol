@@ -253,4 +253,59 @@ contract MixTokenBurn {
         }
     }
 
+
+
+
+    function getAccountTokensBurnedCount(address account) external view returns (uint) {
+        return accountTokensBurnedList[account].length;
+    }
+
+    function getAccountTokensBurned(address account, uint offset, uint limit) external view returns (address[] memory tokens, uint[] memory amounts) {
+        // Get
+        address[] storage tokensBurned = accountTokensBurnedList[account];
+        // Check if offset is beyond the end of the array.
+        if (offset >= tokensBurned.length) {
+            return (new address[](0), new uint[](0));
+        }
+        // Check how many itemIds we can retrieve.
+        uint _limit;
+        if (limit == 0 || offset + limit > tokensBurned.length) {
+            _limit = tokensBurned.length - offset;
+        }
+        else {
+            _limit = limit;
+        }
+        // Allocate memory arrays.
+        tokens = new address[](_limit);
+        amounts = new uint[](_limit);
+        // Populate memory array.
+        for (uint i = 0; i < _limit; i++) {
+            tokens[i] = tokensBurned[offset + i];
+            amounts[i] = tokenAccountBurned[tokens[i]][account].amount;
+        }
+    }
+
+    function getTokenAccountsBurned(address token, uint offset, uint limit) external view returns (address[] memory accounts, uint[] memory amounts) {
+        // Get accountBurned mapping.
+        mapping (address => AccountBurnedLinked) storage accountBurned = tokenAccountBurned[token];
+
+        accounts = new address[](limit);
+        amounts = new uint[](limit);
+        uint i = 0;
+
+        address account = tokenAccountBurnedMost[token];
+
+        while (i++ < offset) {
+            account = accountBurned[account].next;
+        }
+
+        i = 0;
+
+        while (account != address(0)) {
+            accounts[i] = account;
+            amounts[i++] = accountBurned[account].amount;
+            account = accountBurned[account].next;
+        }
+    }
+
 }
