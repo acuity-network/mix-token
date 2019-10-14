@@ -308,4 +308,8 @@ contract MixTokenBurn {
         }
     }
 
+    function getTokenBurnedTotal(address token) external view returns (uint) {
+        return tokenBurnedTotal[token];
+    }
+
 }
