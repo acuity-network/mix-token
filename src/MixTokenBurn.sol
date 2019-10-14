@@ -39,6 +39,11 @@ contract MixTokenBurn {
     mapping (address => mapping(address => AccountBurnedLinked)) tokenAccountBurned;
 
     /**
+     * Mapping of token to total burned.
+     */
+    mapping (address => uint) tokenBurnedTotal;
+
+    /**
      * Mapping of account to list of itemIds that it has burned the token for.
      */
     mapping (address => bytes32[]) accountItemsBurnedList;
@@ -57,6 +62,11 @@ contract MixTokenBurn {
      * Mapping of itemId to mapping of account to quantity of tokens burned for the item.
      */
     mapping (bytes32 => mapping(address => AccountBurnedLinked)) itemAccountBurned;
+
+    /**
+     * Mapping of item to total burned for the item.
+     */
+    mapping (bytes32 => uint) itemBurnedTotal;
 
     MixTokenRegistry tokenRegistry;
     MixItemDagOneParent tokenItems;
@@ -105,6 +115,7 @@ contract MixTokenBurn {
             accountTokensBurnedList[msg.sender].push(token);
         }
         // Get total burned.
+        tokenBurnedTotal[token] += amount;
         uint total = accountBurned[msg.sender].amount + amount;
         accountBurned[msg.sender].amount = total;
         // Check new previous.
