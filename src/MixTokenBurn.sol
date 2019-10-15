@@ -271,9 +271,6 @@ contract MixTokenBurn {
         }
     }
 
-
-
-
     function getAccountTokensBurnedCount(address account) external view returns (uint) {
         return accountTokensBurnedList[account].length;
     }
@@ -342,6 +339,76 @@ contract MixTokenBurn {
 
     function getTokenBurnedTotal(address token) external view returns (uint) {
         return tokenBurnedTotal[token];
+    }
+
+    function getAccountItemsBurnedCount(address account) external view returns (uint) {
+        return accountItemsBurnedList[account].length;
+    }
+
+    function getAccountItemsBurned(address account, uint offset, uint limit) external view returns (bytes32[] memory itemIds, uint[] memory amounts) {
+        // Get
+        bytes32[] storage itemsBurned = accountItemsBurnedList[account];
+        // Check if offset is beyond the end of the array.
+        if (offset >= itemsBurned.length) {
+            return (new bytes32[](0), new uint[](0));
+        }
+        // Check how many itemIds we can retrieve.
+        uint _limit;
+        if (limit == 0 || offset + limit > itemsBurned.length) {
+            _limit = itemsBurned.length - offset;
+        }
+        else {
+            _limit = limit;
+        }
+        // Allocate memory arrays.
+        itemIds = new bytes32[](_limit);
+        amounts = new uint[](_limit);
+        // Populate memory array.
+        for (uint i = 0; i < _limit; i++) {
+            itemIds[i] = itemsBurned[offset + i];
+            amounts[i] = itemAccountBurned[itemIds[i]][account].amount;
+        }
+    }
+
+    function getItemAccountsBurned(bytes32 itemId, uint offset, uint limit) external view returns (address[] memory accounts, uint[] memory amounts) {
+        // Get accountBurned mapping.
+        mapping (address => AccountBurnedLinked) storage accountBurned = itemAccountBurned[itemId];
+        // Get the account that burned the most.
+        address start = itemAccountBurnedMost[itemId];
+        // Find the account at offset.
+        if (start == address(0)) {
+            return (new address[](0), new uint[](0));
+        }
+        uint i = 0;
+        while (i++ < offset) {
+            start = accountBurned[start].next;
+            if (start == (address(0))) {
+                return (new address[](0), new uint[](0));
+            }
+        }
+        // Check how many accounts we can retrieve.
+        address account = start;
+        uint _limit = 0;
+        do {
+            account = accountBurned[account].next;
+            _limit++;
+        }
+        while (account != address(0) && _limit < limit);
+        // Allocate return variables.
+        accounts = new address[](_limit);
+        amounts = new uint[](_limit);
+        // Populate return variables.
+        account = start;
+        i = 0;
+        while (i < _limit) {
+            accounts[i] = account;
+            amounts[i++] = accountBurned[account].amount;
+            account = accountBurned[account].next;
+        }
+    }
+
+    function getItemBurnedTotal(bytes32 itemId) external view returns (uint) {
+        return itemBurnedTotal[itemId];
     }
 
 }
