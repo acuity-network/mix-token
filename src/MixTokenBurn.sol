@@ -116,13 +116,10 @@ contract MixTokenBurn {
         while (total <= accountBurned[next].amount) {
             next = accountBurned[next].next;
         }
+        prev = accountBurned[next].prev;
         // Are we in the same position?
         if (next == msg.sender) {
-            prev = accountBurned[msg.sender].prev;
             next = accountBurned[msg.sender].next;
-        }
-        else {
-            prev = accountBurned[next].prev;
         }
     }
 
@@ -309,20 +306,34 @@ contract MixTokenBurn {
     function getTokenAccountsBurned(address token, uint offset, uint limit) external view returns (address[] memory accounts, uint[] memory amounts) {
         // Get accountBurned mapping.
         mapping (address => AccountBurnedLinked) storage accountBurned = tokenAccountBurned[token];
-
-        accounts = new address[](limit);
-        amounts = new uint[](limit);
-        uint i = 0;
-
-        address account = tokenAccountBurnedMost[token];
-
-        while (i++ < offset) {
-            account = accountBurned[account].next;
+        // Get the account that burned the most.
+        address start = tokenAccountBurnedMost[token];
+        // Find the account at offset.
+        if (start == address(0)) {
+            return (new address[](0), new uint[](0));
         }
-
+        uint i = 0;
+        while (i++ < offset) {
+            start = accountBurned[start].next;
+            if (start == (address(0))) {
+                return (new address[](0), new uint[](0));
+            }
+        }
+        // Check how many accounts we can retrieve.
+        address account = start;
+        uint _limit = 0;
+        do {
+            account = accountBurned[account].next;
+            _limit++;
+        }
+        while (account != address(0) && _limit < limit);
+        // Allocate return variables.
+        accounts = new address[](_limit);
+        amounts = new uint[](_limit);
+        // Populate return variables.
+        account = start;
         i = 0;
-
-        while (account != address(0)) {
+        while (i < _limit) {
             accounts[i] = account;
             amounts[i++] = accountBurned[account].amount;
             account = accountBurned[account].next;
