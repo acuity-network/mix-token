@@ -91,16 +91,6 @@ contract MixTokenBurn {
     }
 
     /**
-     * @dev Revert if an item is not listed by token.
-     * @param token Token that must list the item.
-     * @param itemId Item that must be listed.
-     */
-    modifier tokenListsItem(MixTokenInterface token, bytes32 itemId) {
-        require (tokenRegistry.getItemId(address(token)) == tokenItems.getParentId(itemId), "Token does not list item.");
-        _;
-    }
-
-    /**
      * @param _tokenRegistry Address of the MixTokenRegistry contract.
      * @param _tokenItems Address of the MixItemDagOneParent contract.
      */
@@ -140,9 +130,11 @@ contract MixTokenBurn {
     /**
      * @dev Get previous and next accounts for inserting burned tokens for an item into linked list.
      */
-    function getBurnTokensForItemPrevNext(MixTokenInterface token, bytes32 itemId, uint amount) external view tokenListsItem(token, itemId) returns (address tokenPrev, address tokenNext, address itemPrev, address itemNext) {
+    function getBurnTokensForItemPrevNext(bytes32 itemId, uint amount) external view returns (address tokenPrev, address tokenNext, address itemPrev, address itemNext) {
+        // Get token contract for item.
+        address token = tokenRegistry.getToken(tokenItems.getParentId(itemId));
         // Get previous and next for tokenAccountBurned linked list.
-        (tokenPrev, tokenNext) = _getPrevNext(tokenAccountBurned[address(token)], tokenAccountBurnedMost[address(token)], amount);
+        (tokenPrev, tokenNext) = _getPrevNext(tokenAccountBurned[token], tokenAccountBurnedMost[token], amount);
         // Get previous and next for itemAccountBurned linked list.
         (itemPrev, itemNext) = _getPrevNext(itemAccountBurned[itemId], itemAccountBurnedMost[itemId], amount);
     }
@@ -250,11 +242,12 @@ contract MixTokenBurn {
 
     /**
      * @dev Burn sender's tokens in association with a specific item.
-     * @param token Address of the token's contract.
      * @param itemId Item to burn this token for.
      * @param amount Amount of tokens burned.
      */
-    function burnTokensForItem(MixTokenInterface token, bytes32 itemId, uint amount, address tokenPrev, address tokenNext, address itemPrev, address itemNext) external tokenListsItem(token, itemId) nonZero(amount) {
+    function burnTokensForItem(bytes32 itemId, uint amount, address tokenPrev, address tokenNext, address itemPrev, address itemNext) external nonZero(amount) {
+        // Get token contract for item.
+        MixTokenInterface token = MixTokenInterface(tokenRegistry.getToken(tokenItems.getParentId(itemId)));
         // Transfer the tokens to this contract.
         // Wrap with require () in case the token contract returns false on error instead of throwing.
         require (token.transferFrom(msg.sender, address(this), amount), "Token transfer failed.");
@@ -312,7 +305,7 @@ contract MixTokenBurn {
      * @return amounts Amount of each token that was burned by account.
      */
     function getAccountTokensBurned(address account, uint offset, uint limit) external view returns (address[] memory tokens, uint[] memory amounts) {
-        // Get
+        // Get tokensBurned mapping.
         address[] storage tokensBurned = accountTokensBurnedList[account];
         // Check if offset is beyond the end of the array.
         if (offset >= tokensBurned.length) {
