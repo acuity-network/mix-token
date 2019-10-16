@@ -74,7 +74,7 @@ contract MixTokenBurn {
     MixTokenRegistry tokenRegistry;
 
     /**
-     * Address of contract linking items to tokens.
+     * Address of contract linking content items to the token that can be burned for it.
      */
     MixItemDagOneParent tokenItems;
 
@@ -107,10 +107,12 @@ contract MixTokenBurn {
 
     /**
      * @param _tokenRegistry Address of the MixTokenRegistry contract.
+     * @param _tokenItems Address of the MixItemDagOneParent contract.
      */
     constructor(MixTokenRegistry _tokenRegistry, MixItemDagOneParent _tokenItems) public {
         // Store the address of the MixItemStoreRegistry contract.
         tokenRegistry = _tokenRegistry;
+        // Store the address of the MixItemDagOneParent contract.
         tokenItems = _tokenItems;
     }
 
@@ -144,7 +146,9 @@ contract MixTokenBurn {
      * @dev Get previous and next accounts for inserting burned tokens for an item into linked list.
      */
     function getBurnTokensForItemPrevNext(MixTokenInterface token, bytes32 itemId, uint amount) external view tokenListsItem(token, itemId) returns (address tokenPrev, address tokenNext, address itemPrev, address itemNext) {
+        // Get previous and next for tokenAccountBurned linked list.
         (tokenPrev, tokenNext) = _getPrevNext(tokenAccountBurned[address(token)], tokenAccountBurnedMost[address(token)], amount);
+        // Get previous and next for itemAccountBurned linked list.
         (itemPrev, itemNext) = _getPrevNext(itemAccountBurned[itemId], itemAccountBurnedMost[itemId], amount);
     }
 
