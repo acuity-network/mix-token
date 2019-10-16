@@ -141,10 +141,11 @@ contract MixTokenBurn {
     }
 
     /**
-    * @dev Get previous and next accounts for inserting burned tokens for an item into linked list.
+     * @dev Get previous and next accounts for inserting burned tokens for an item into linked list.
      */
-    function getBurnTokensForItemPrevNext(bytes32 itemId, uint amount) external view returns (address prev, address next) {
-        (prev, next) = _getPrevNext(itemAccountBurned[itemId], itemAccountBurnedMost[itemId], amount);
+    function getBurnTokensForItemPrevNext(MixTokenInterface token, bytes32 itemId, uint amount) external view tokenListsItem(token, itemId) returns (address tokenPrev, address tokenNext, address itemPrev, address itemNext) {
+        (tokenPrev, tokenNext) = _getPrevNext(tokenAccountBurned[address(token)], tokenAccountBurnedMost[address(token)], amount);
+        (itemPrev, itemNext) = _getPrevNext(itemAccountBurned[itemId], itemAccountBurnedMost[itemId], amount);
     }
 
     /**
