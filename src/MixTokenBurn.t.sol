@@ -35,12 +35,12 @@ contract AccountProxy {
         mixTokenBase.authorize(account);
     }
 
-    function burnTokens(MixTokenInterface token, uint amount, address prev, address next) external {
-        mixTokenBurn.burnTokens(token, amount, prev, next);
+    function burnToken(MixTokenInterface token, uint amount, address prev, address next) external {
+        mixTokenBurn.burnToken(token, amount, prev, next);
     }
 
-    function getBurnTokensPrevNext(MixTokenInterface token, uint amount) external view returns (address prev, address next) {
-        (prev, next) = mixTokenBurn.getBurnTokensPrevNext(token, amount);
+    function getBurnTokenPrevNext(MixTokenInterface token, uint amount) external view returns (address prev, address next) {
+        (prev, next) = mixTokenBurn.getBurnTokenPrevNext(token, amount);
     }
 
 }
@@ -66,58 +66,58 @@ contract MixTokenBurnTest is DSTest {
         token.authorize(address(mixTokenBurn));
     }
 
-    function testControlBurnTokensZero() public {
-        (address prev, address next) = mixTokenBurn.getBurnTokensPrevNext(token, 1);
-        mixTokenBurn.burnTokens(token, 1, prev, next);
+    function testControlBurnTokenZero() public {
+        (address prev, address next) = mixTokenBurn.getBurnTokenPrevNext(token, 1);
+        mixTokenBurn.burnToken(token, 1, prev, next);
     }
 
-    function testFailBurnTokensZero() public {
-        (address prev, address next) = mixTokenBurn.getBurnTokensPrevNext(token, 0);
-        mixTokenBurn.burnTokens(token, 0, prev, next);
+    function testFailBurnTokenZero() public {
+        (address prev, address next) = mixTokenBurn.getBurnTokenPrevNext(token, 0);
+        mixTokenBurn.burnToken(token, 0, prev, next);
     }
 
-    function testControlBurnTokensNotEnoughTokens() public {
-        (address prev, address next) = mixTokenBurn.getBurnTokensPrevNext(token, 10);
-        mixTokenBurn.burnTokens(token, 10, prev, next);
+    function testControlBurnTokenNotEnough() public {
+        (address prev, address next) = mixTokenBurn.getBurnTokenPrevNext(token, 10);
+        mixTokenBurn.burnToken(token, 10, prev, next);
     }
 
-    function testFailBurnTokensNotEnoughTokens() public {
-        (address prev, address next) = mixTokenBurn.getBurnTokensPrevNext(token, 11);
-        mixTokenBurn.burnTokens(token, 11, prev, next);
+    function testFailBurnTokenNotEnough() public {
+        (address prev, address next) = mixTokenBurn.getBurnTokenPrevNext(token, 11);
+        mixTokenBurn.burnToken(token, 11, prev, next);
     }
 
-    function testBurnTokens() public {
+    function testBurnToken() public {
         assertEq(token.balanceOf(address(this)), 10);
-        assertEq(mixTokenBurn.getTokensBurned(address(this), token), 0);
-        (address prev, address next) = mixTokenBurn.getBurnTokensPrevNext(token, 1);
-        mixTokenBurn.burnTokens(token, 1, prev, next);
+        assertEq(mixTokenBurn.getAccountTokenBurned(address(this), token), 0);
+        (address prev, address next) = mixTokenBurn.getBurnTokenPrevNext(token, 1);
+        mixTokenBurn.burnToken(token, 1, prev, next);
         assertEq(token.balanceOf(address(this)), 9);
-        assertEq(mixTokenBurn.getTokensBurned(address(this), token), 1);
+        assertEq(mixTokenBurn.getAccountTokenBurned(address(this), token), 1);
 
         AccountProxy accountProxy = new AccountProxy(token, mixTokenBurn);
 
         token.transfer(address(accountProxy), 2);
 
         accountProxy.authorize(address(mixTokenBurn));
-        (prev, next) = accountProxy.getBurnTokensPrevNext(token, 2);
+        (prev, next) = accountProxy.getBurnTokenPrevNext(token, 2);
 
         emit log_named_address("prev", prev);
         emit log_named_address("next", next);
 
-        accountProxy.burnTokens(token, 2, prev, next);
+        accountProxy.burnToken(token, 2, prev, next);
         assertEq(token.balanceOf(address(accountProxy)), 0);
-        assertEq(mixTokenBurn.getTokensBurned(address(this), token), 1);
-        assertEq(mixTokenBurn.getTokensBurned(address(accountProxy), token), 2);
+        assertEq(mixTokenBurn.getAccountTokenBurned(address(this), token), 1);
+        assertEq(mixTokenBurn.getAccountTokenBurned(address(accountProxy), token), 2);
 /*
         (prev, next) = mixTokenBurn.getBurnTokensPrevNext(token, 2);
         mixTokenBurn.burnTokens(token, 2, prev, next);
         assertEq(token.balanceOf(address(this)), 2);
-        assertEq(mixTokenBurn.getTokensBurned(address(this), token), 7);
+        assertEq(mixTokenBurn.getAccountTokenBurned(address(this), token), 7);
 
         (prev, next) = mixTokenBurn.getBurnTokensPrevNext(token, 2);
         mixTokenBurn.burnTokens(token, 2, prev, next);
         assertEq(token.balanceOf(address(this)), 0);
-        assertEq(mixTokenBurn.getTokensBurned(address(this), token), 9);
+        assertEq(mixTokenBurn.getAccountTokenBurned(address(this), token), 9);
 */
     }
 /*
