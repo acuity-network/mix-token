@@ -271,20 +271,13 @@ contract MixTokenBurn {
     }
 
     /**
-     * @dev Get the amount of multiple tokens an account has burned.
+     * @dev Get the amount of tokens an account has burned for an item.
      * @param account Address of the account.
-     * @param tokens Addresses of the token contracts.
-     * @return burned Amount of these tokens that account has burned.
+     * @param itemId itemId of the item.
+     * @return Amount of these tokens that this account has burned for the item.
      */
-    function getTokensBurnedMultiple(address account, MixTokenInterface[] calldata tokens) external view returns (uint[] memory burned) {
-        // Get number of tokens.
-        uint count = tokens.length;
-        // Allocate return array.
-        burned = new uint[](count);
-        // Populate return array.
-        for (uint i = 0; i < count; i++) {
-            burned[i] = tokenAccountBurned[address(tokens[i])][account].amount;
-        }
+    function getTokensBurnedForItem(address account, bytes32 itemId) external view returns (uint) {
+        return itemAccountBurned[itemId][account].amount;
     }
 
     /**
