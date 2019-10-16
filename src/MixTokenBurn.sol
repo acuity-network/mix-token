@@ -39,11 +39,6 @@ contract MixTokenBurn {
     mapping (address => mapping (address => AccountBurnedLinked)) tokenAccountBurned;
 
     /**
-     * Mapping of token to total burned.
-     */
-    mapping (address => uint) tokenBurnedTotal;
-
-    /**
      * Mapping of account to list of itemIds that it has burned the token for.
      */
     mapping (address => bytes32[]) accountItemsBurnedList;
@@ -202,8 +197,6 @@ contract MixTokenBurn {
         if (accountBurned[msg.sender].amount == 0) {
             accountTokensBurnedList[msg.sender].push(token);
         }
-        // Update total burned for this token.
-        tokenBurnedTotal[token] += amount;
         // Check new previous.
         if (prev == address(0)) {
             require (next == tokenAccountBurnedMost[token], "Next account must be account that has burned most when no previous account supplied.");
@@ -386,15 +379,6 @@ contract MixTokenBurn {
             amounts[i++] = accountBurned[account].amount;
             account = accountBurned[account].next;
         }
-    }
-
-    /**
-     * @dev Get total number of a specific token that were burned.
-     * @param token Token to check.
-     * @return Total amount of tokens that have been burned.
-     */
-    function getTokenBurnedTotal(address token) external view returns (uint) {
-        return tokenBurnedTotal[token];
     }
 
     /**
