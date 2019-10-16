@@ -220,8 +220,6 @@ contract MixTokenBurn {
         if (accountBurned[msg.sender].amount == 0) {
             accountItemsBurnedList[msg.sender].push(itemId);
         }
-        // Update total burned for this item.
-        itemBurnedTotal[itemId] += amount;
         // Check new previous.
         if (prev == address(0)) {
             require (next == itemAccountBurnedMost[itemId], "Next account must be account that has burned most when no previous account supplied.");
@@ -263,6 +261,8 @@ contract MixTokenBurn {
         // Record the tokens as burned.
         _burnTokens(address(token), amount, tokenPrev, tokenNext);
         _burnTokensForItem(itemId, amount, itemPrev, itemNext);
+        // Update total burned for this item.
+        itemBurnedTotal[itemId] += amount;
         // Emit the event.
         emit BurnTokens(token, itemId, msg.sender, amount);
     }
