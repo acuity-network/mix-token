@@ -322,19 +322,7 @@ contract MixTokenBurn {
         }
     }
 
-    /**
-     * @dev Get accounts that have burned a token.
-     * @param token Token to get accounts that have burned it.
-     * @param offset Offset to start results from.
-     * @param limit Maximum number of results to return.
-     * @return accounts List of accounts that burned the token.
-     * @return amounts Amount of token each account burned.
-     */
-    function getTokenAccountsBurned(address token, uint offset, uint limit) external view returns (address[] memory accounts, uint[] memory amounts) {
-        // Get accountBurned mapping.
-        mapping (address => AccountBurnedLinked) storage accountBurned = tokenAccountBurned[token];
-        // Get the account that burned the most.
-        address start = tokenAccountBurnedMost[token];
+    function _getAccountsBurned(mapping (address => AccountBurnedLinked) storage accountBurned, address start, uint offset, uint limit) internal view returns (address[] memory accounts, uint[] memory amounts) {
         // Find the account at offset.
         if (start == address(0)) {
             return (new address[](0), new uint[](0));
@@ -365,6 +353,23 @@ contract MixTokenBurn {
             amounts[i++] = accountBurned[account].amount;
             account = accountBurned[account].next;
         }
+    }
+
+    /**
+     * @dev Get accounts that have burned a token.
+     * @param token Token to get accounts that have burned it.
+     * @param offset Offset to start results from.
+     * @param limit Maximum number of results to return.
+     * @return accounts List of accounts that burned the token.
+     * @return amounts Amount of token each account burned.
+     */
+    function getTokenAccountsBurned(address token, uint offset, uint limit) external view returns (address[] memory accounts, uint[] memory amounts) {
+        // Get accountBurned mapping.
+        mapping (address => AccountBurnedLinked) storage accountBurned = tokenAccountBurned[token];
+        // Get the account that burned the most.
+        address start = tokenAccountBurnedMost[token];
+        // Get accounts and corresponding amounts.
+        (accounts, amounts) = _getAccountsBurned(accountBurned, start, offset, limit);
     }
 
     /**
@@ -422,36 +427,8 @@ contract MixTokenBurn {
         mapping (address => AccountBurnedLinked) storage accountBurned = itemAccountBurned[itemId];
         // Get the account that burned the most.
         address start = itemAccountBurnedMost[itemId];
-        // Find the account at offset.
-        if (start == address(0)) {
-            return (new address[](0), new uint[](0));
-        }
-        uint i = 0;
-        while (i++ < offset) {
-            start = accountBurned[start].next;
-            if (start == (address(0))) {
-                return (new address[](0), new uint[](0));
-            }
-        }
-        // Check how many accounts we can retrieve.
-        address account = start;
-        uint _limit = 0;
-        do {
-            account = accountBurned[account].next;
-            _limit++;
-        }
-        while (account != address(0) && _limit < limit);
-        // Allocate return variables.
-        accounts = new address[](_limit);
-        amounts = new uint[](_limit);
-        // Populate return variables.
-        account = start;
-        i = 0;
-        while (i < _limit) {
-            accounts[i] = account;
-            amounts[i++] = accountBurned[account].amount;
-            account = accountBurned[account].next;
-        }
+        // Get accounts and corresponding amounts.
+        (accounts, amounts) = _getAccountsBurned(accountBurned, start, offset, limit);
     }
 
     /**
