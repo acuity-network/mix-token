@@ -12,6 +12,9 @@ import "./MixTokenRegistry.sol";
  */
 contract MixTokenBurn {
 
+    /**
+     * Amount of tokens burned, linked to previous and next most burned.
+     */
     struct AccountBurnedLinked {
         address prev;
         address next;
@@ -84,6 +87,7 @@ contract MixTokenBurn {
 
     /**
      * @dev Revert if amount is zero.
+     * @param amount Amount that must not be zero.
      */
     modifier nonZero(uint amount) {
         require (amount != 0);
@@ -102,7 +106,12 @@ contract MixTokenBurn {
     }
 
     /**
-     * @dev Get previous and next accounts for inserting in linked list.
+     * @dev Get previous and next accounts for inserting into linked list.
+     * @param accountBurned Linked list of how much each account has burned.
+     * @param first Address of the first entry in the linked list.
+     * @param amount Amount that the the new entry will have.
+     * @return prev Address of the entry preceeding the new entry.
+     * @return next Address of the entry after the new entry.
      */
     function _getPrevNext(mapping (address => AccountBurnedLinked) storage accountBurned, address first, uint amount) internal view nonZero(amount) returns (address prev, address next) {
         // Get total.
@@ -121,14 +130,24 @@ contract MixTokenBurn {
     }
 
     /**
-     * @dev Get previous and next accounts for inserting burned tokens into linked list.
+     * @dev Get previous and next accounts for inserting burned tokens into tokenAccountBurned linked list.
+     * @param token Token that is being burned.
+     * @param amount Amount of the token that is being burned.
+     * @return prev Address of the entry preceeding the new entry.
+     * @return next Address of the entry after the new entry.
      */
     function getBurnTokenPrevNext(MixTokenInterface token, uint amount) external view returns (address prev, address next) {
         (prev, next) = _getPrevNext(tokenAccountBurned[address(token)], tokenAccountBurnedMost[address(token)], amount);
     }
 
     /**
-     * @dev Get previous and next accounts for inserting burned tokens for an item into linked list.
+     * @dev Get previous and next accounts for inserting burned tokens for an item into both tokenAccountBurned and itemAccountBurned linked lists.
+     * @param itemId Item having its token burned.
+     * @param amount Amount of the token that is being burned.
+     * @return tokenPrev Address of the entry preceeding the new entry in the tokenAccountBurned linked list.
+     * @return tokenNext Address of the entry after the new entry in the tokenAccountBurned linked list.
+     * @return itemPrev Address of the entry preceeding the new entry in the itemAccountBurned linked list.
+     * @return itemNext Address of the entry after the new entry in the itemAccountBurned linked list.
      */
     function getBurnTokenItemPrevNext(bytes32 itemId, uint amount) external view returns (address tokenPrev, address tokenNext, address itemPrev, address itemNext) {
         // Get token contract for item.
@@ -140,7 +159,11 @@ contract MixTokenBurn {
     }
 
     /**
-     * @dev Insert amount burned into account linked list.
+     * @dev Insert amount burned into linked list.
+     * @param accountBurned Linked list of how much each account has burned.
+     * @param amount Amount of tokens burned.
+     * @param prev Address of the entry preceeding the new entry.
+     * @param next Address of the entry after the new entry.
      */
     function _accountBurnedInsert(mapping (address => AccountBurnedLinked) storage accountBurned, uint amount, address prev, address next) internal {
         // Get total burned by sender for this token.
@@ -180,7 +203,11 @@ contract MixTokenBurn {
     }
 
     /**
-     * @dev Record burning of tokens in account linked list.
+     * @dev Record burning of tokens in linked list.
+     * @param token Address of token being burned.
+     * @param amount Amount of token being burned.
+     * @param prev Address of the entry preceeding the new entry.
+     * @param next Address of the entry after the new entry.
      */
     function _burnToken(address token, uint amount, address prev, address next) internal {
         // Get accountBurned mapping.
@@ -203,7 +230,11 @@ contract MixTokenBurn {
     }
 
     /**
-    * @dev Record burning of tokens for item in account linked list.
+     * @dev Record burning of tokens for item in linked list.
+     * @param itemId Item having its token burned.
+     * @param amount Amount of token being burned.
+     * @param prev Address of the entry preceeding the new entry.
+     * @param next Address of the entry after the new entry.
      */
     function _burnTokenItem(bytes32 itemId, uint amount, address prev, address next) internal {
         // Get accountBurned mapping.
@@ -229,6 +260,8 @@ contract MixTokenBurn {
      * @dev Burn sender's tokens.
      * @param token Address of the token's contract.
      * @param amount Amount of tokens burned.
+     * @param prev Address of the entry preceeding the new entry.
+     * @param next Address of the entry after the new entry.
      */
     function burnToken(MixTokenInterface token, uint amount, address prev, address next) external nonZero(amount) {
         // Transfer the tokens to this contract.
@@ -241,9 +274,13 @@ contract MixTokenBurn {
     }
 
     /**
-     * @dev Burn sender's tokens in association with a specific item.
+     * @dev Burn sender's tokens for a specific item.
      * @param itemId Item to burn this token for.
      * @param amount Amount of tokens burned.
+     * @param tokenPrev Address of the entry preceeding the new entry in the tokenAccountBurned linked list.
+     * @param tokenNext Address of the entry after the new entry in the tokenAccountBurned linked list.
+     * @param itemPrev Address of the entry preceeding the new entry in the itemAccountBurned linked list.
+     * @param itemNext Address of the entry after the new entry in the itemAccountBurned linked list.
      */
     function burnTokenItem(bytes32 itemId, uint amount, address tokenPrev, address tokenNext, address itemPrev, address itemNext) external nonZero(amount) {
         // Get token contract for item.
@@ -273,7 +310,7 @@ contract MixTokenBurn {
     /**
      * @dev Get the amount of tokens an account has burned for an item.
      * @param account Address of the account.
-     * @param itemId itemId of the item.
+     * @param itemId Item to get the amount of tokens account has burned for it.
      * @return Amount of these tokens that this account has burned for the item.
      */
     function getAccountTokenItemBurned(address account, bytes32 itemId) external view returns (uint) {
@@ -281,8 +318,8 @@ contract MixTokenBurn {
     }
 
     /**
-     * @dev Get number of different token an account has burned.
-     * @param account Account to check.
+     * @dev Get number of different tokens an account has burned.
+     * @param account Account to get the number of different tokens burned.
      * @return Number of different tokens account has burned.
      */
     function getAccountTokensBurnedCount(address account) external view returns (uint) {
@@ -291,7 +328,7 @@ contract MixTokenBurn {
 
     /**
      * @dev Get list of tokens that an account has burned.
-     * @param account Account to check which tokens it has burned.
+     * @param account Account to get which tokens it has burned.
      * @param offset Offset to start results from.
      * @param limit Maximum number of results to return.
      * @return tokens List of tokens the account has burned.
@@ -322,6 +359,15 @@ contract MixTokenBurn {
         }
     }
 
+    /**
+     * @dev Get accounts that have burned.
+     * @param accountBurned Linked list of how much each account has burned.
+     * @param start Address of first entry in linked list.
+     * @param offset Offset to start results from.
+     * @param limit Maximum number of results to return.
+     * @return accounts List of accounts that burned the token.
+     * @return amounts Amount of token each account burned.
+     */
     function _getAccountsBurned(mapping (address => AccountBurnedLinked) storage accountBurned, address start, uint offset, uint limit) internal view returns (address[] memory accounts, uint[] memory amounts) {
         // Find the account at offset.
         if (start == address(0)) {
@@ -416,7 +462,7 @@ contract MixTokenBurn {
 
     /**
      * @dev Get accounts that have burned tokens for an item.
-     * @param itemId itemId of item to get accounts for.
+     * @param itemId Item to get accounts for.
      * @param offset Offset to start results from.
      * @param limit Maximum number of results to return.
      * @return accounts List of accounts that burned tokens for the item.
@@ -432,8 +478,8 @@ contract MixTokenBurn {
     }
 
     /**
-     * @dev Get total number of tokens that were burned for an item.
-     * @param itemId itemId of item to check.
+     * @dev Get total amount of tokens that were burned for an item.
+     * @param itemId Item to get amount of tokens burned for.
      * @return Total amount of tokens that have been burned for the item.
      */
     function getItemBurnedTotal(bytes32 itemId) external view returns (uint) {
