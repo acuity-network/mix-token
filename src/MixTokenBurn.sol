@@ -330,7 +330,7 @@ contract MixTokenBurn {
      * @dev Get list of tokens that an account has burned.
      * @param account Account to get which tokens it has burned.
      * @param offset Offset to start results from.
-     * @param limit Maximum number of results to return.
+     * @param limit Maximum number of results to return. 0 for unlimited.
      * @return tokens List of tokens the account has burned.
      * @return amounts Amount of each token that was burned by account.
      */
@@ -431,7 +431,7 @@ contract MixTokenBurn {
      * @dev Get list of items that an account has burned tokens for.
      * @param account Account to check which items it has burned tokens for.
      * @param offset Offset to start results from.
-     * @param limit Maximum number of results to return.
+     * @param limit Maximum number of results to return. 0 for unlimited.
      * @return itemIds List of itemIds for items account has burned tokens for.
      * @return amounts Amount of each token that was burned for each item by account.
      */
