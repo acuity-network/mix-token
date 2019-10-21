@@ -189,13 +189,15 @@ contract MixTokenBurn {
         if (accountBurned[msg.sender].next != address(0)) {
             accountBurned[accountBurned[msg.sender].next].prev = accountBurned[msg.sender].prev;
         }
+        // Check there is no gap between prev and next.
+        if (prev != address(0) && next != address(0)) {
+            require (accountBurned[prev].next == next, "Next must be directly after previous.");
+        }
         // Add account links to list.
         if (prev != address(0)) {
-            require (accountBurned[prev].next == next, "Account must be directly after previous.");
             accountBurned[prev].next = msg.sender;
         }
         if (next != address(0)) {
-            require (accountBurned[next].prev == prev, "Account must be directly before next.");
             accountBurned[next].prev = msg.sender;
         }
         accountBurned[msg.sender].prev = prev;

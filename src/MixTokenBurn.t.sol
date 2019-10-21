@@ -86,11 +86,11 @@ contract MixTokenBurnTest is DSTest {
         account3 = new AccountProxy(token0, mixTokenBurn);
         account4 = new AccountProxy(token0, mixTokenBurn);
 
-        token0.transfer(address(account0), 2);
-        token0.transfer(address(account1), 2);
-        token0.transfer(address(account2), 2);
-        token0.transfer(address(account3), 2);
-        token0.transfer(address(account4), 2);
+        token0.transfer(address(account0), 10);
+        token0.transfer(address(account1), 10);
+        token0.transfer(address(account2), 10);
+        token0.transfer(address(account3), 10);
+        token0.transfer(address(account4), 10);
 
         account0.authorize(address(mixTokenBurn));
         account1.authorize(address(mixTokenBurn));
@@ -110,17 +110,77 @@ contract MixTokenBurnTest is DSTest {
     }
 
     function testControlBurnTokenNotEnough() public {
-        (address prev, address next) = account0.getBurnTokenPrevNext(token0, 2);
-        account0.burnToken(token0, 2, prev, next);
+        (address prev, address next) = account0.getBurnTokenPrevNext(token0, 10);
+        account0.burnToken(token0, 10, prev, next);
     }
 
     function testFailBurnTokenNotEnough() public {
-        (address prev, address next) = account0.getBurnTokenPrevNext(token0, 3);
-        account0.burnToken(token0, 3, prev, next);
+        (address prev, address next) = account0.getBurnTokenPrevNext(token0, 11);
+        account0.burnToken(token0, 11, prev, next);
+    }
+
+    function testControlBurnTokenNextNotHighest() public {
+        account0.burnToken(token0, 1, address(0), address(0));
+        account1.burnToken(token0, 2, address(0), address(account0));
+        account2.burnToken(token0, 3, address(0), address(account1));
+    }
+
+    function testFailBurnTokenNextNotHighest() public {
+        account0.burnToken(token0, 1, address(0), address(0));
+        account1.burnToken(token0, 2, address(0), address(account0));
+        account2.burnToken(token0, 3, address(0), address(account0));
+    }
+
+    function testControlBurnTokenPrevNotLowest() public {
+        account0.burnToken(token0, 3, address(0), address(0));
+        account1.burnToken(token0, 2, address(account0), address(0));
+        account2.burnToken(token0, 1, address(account1), address(0));
+    }
+
+    function testFailBurnTokenPrevNotLowest() public {
+        account0.burnToken(token0, 3, address(0), address(0));
+        account1.burnToken(token0, 2, address(account0), address(0));
+        account2.burnToken(token0, 1, address(account0), address(0));
+    }
+
+    function testControlBurnTokenNotLessThanOrEqualToPrev() public {
+        account0.burnToken(token0, 3, address(0), address(0));
+        account1.burnToken(token0, 3, address(account0), address(0));
+    }
+
+    function testFailBurnTokenNotLessThanOrEqualToPrev() public {
+        account0.burnToken(token0, 3, address(0), address(0));
+        account1.burnToken(token0, 4, address(account0), address(0));
+    }
+
+    function testControlBurnTokenNotMoreThanNext() public {
+        account0.burnToken(token0, 3, address(0), address(0));
+        account1.burnToken(token0, 2, address(account0), address(0));
+        account2.burnToken(token0, 3, address(account0), address(account1));
+    }
+
+    function testFailBurnTokenNotMoreThanNext() public {
+        account0.burnToken(token0, 3, address(0), address(0));
+        account1.burnToken(token0, 2, address(account0), address(0));
+        account2.burnToken(token0, 2, address(account0), address(account1));
+    }
+
+    function testControlBurnTokenNextNotDirectlyAfterPrev() public {
+        account0.burnToken(token0, 5, address(0), address(0));
+        account1.burnToken(token0, 3, address(account0), address(0));
+        account2.burnToken(token0, 1, address(account1), address(0));
+        account3.burnToken(token0, 4, address(account0), address(account1));
+    }
+
+    function testFailBurnTokenNextNotDirectlyAfterPrev() public {
+        account0.burnToken(token0, 5, address(0), address(0));
+        account1.burnToken(token0, 3, address(account0), address(0));
+        account2.burnToken(token0, 1, address(account1), address(0));
+        account3.burnToken(token0, 4, address(account0), address(account2));
     }
 
     function testBurnToken() public {
-        assertEq(token0.balanceOf(address(account0)), 2);
+        assertEq(token0.balanceOf(address(account0)), 10);
         assertEq(mixTokenBurn.getAccountTokensBurnedCount(address(account0)), 0);
         assertEq(mixTokenBurn.getAccountTokenBurned(address(account0), token0), 0);
         assertEq(mixTokenBurn.getAccountTokensBurnedCount(address(account1)), 0);
@@ -128,7 +188,7 @@ contract MixTokenBurnTest is DSTest {
 
         (address prev, address next) = account0.getBurnTokenPrevNext(token0, 1);
         account0.burnToken(token0, 1, prev, next);
-        assertEq(token0.balanceOf(address(account0)), 1);
+        assertEq(token0.balanceOf(address(account0)), 9);
         assertEq(token0.balanceOf(address(mixTokenBurn)), 1);
         assertEq(mixTokenBurn.getAccountTokensBurnedCount(address(account0)), 1);
         assertEq(mixTokenBurn.getAccountTokenBurned(address(account0), token0), 1);
@@ -148,7 +208,7 @@ contract MixTokenBurnTest is DSTest {
 
         (prev, next) = account1.getBurnTokenPrevNext(token0, 2);
         account1.burnToken(token0, 2, prev, next);
-        assertEq(token0.balanceOf(address(account1)), 0);
+        assertEq(token0.balanceOf(address(account1)), 8);
         assertEq(token0.balanceOf(address(mixTokenBurn)), 3);
         assertEq(mixTokenBurn.getAccountTokensBurnedCount(address(account0)), 1);
         assertEq(mixTokenBurn.getAccountTokenBurned(address(account0), token0), 1);
