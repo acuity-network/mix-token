@@ -27,16 +27,6 @@ contract MixTokenBurn {
     mapping (address => address[]) accountTokensBurnedList;
 
     /**
-     * Mapping of token to account that has burned the most of that token.
-     */
-    mapping (address => address) tokenAccountBurnedMost;
-
-    /**
-     * Mapping of token to account that has burned the least of that token.
-     */
-    mapping (address => address) tokenAccountBurnedLeast;
-
-    /**
      * Mapping of token to mapping of account to AccountBurnedLinked.
      */
     mapping (address => mapping (address => AccountBurnedLinked)) tokenAccountBurned;
@@ -45,16 +35,6 @@ contract MixTokenBurn {
      * Mapping of account to list of itemIds that it has burned the token for.
      */
     mapping (address => bytes32[]) accountItemsBurnedList;
-
-    /**
-     * Mapping of itemId to account that has burned the most tokens for that item.
-     */
-    mapping (bytes32 => address) itemAccountBurnedMost;
-
-    /**
-     * Mapping of itemId to account that has burned the least tokens for that item.
-     */
-    mapping (bytes32 => address) itemAccountBurnedLeast;
 
     /**
      * Mapping of itemId to mapping of account to quantity of tokens burned for the item.
@@ -108,15 +88,14 @@ contract MixTokenBurn {
     /**
      * @dev Get previous and next accounts for inserting into linked list.
      * @param accountBurned Linked list of how much each account has burned.
-     * @param first Address of the first entry in the linked list.
      * @param amount Amount that the the new entry will have.
      * @return prev Address of the entry preceeding the new entry.
      * @return next Address of the entry after the new entry.
      */
-    function _getPrevNext(mapping (address => AccountBurnedLinked) storage accountBurned, address first, uint amount) internal view nonZero(amount) returns (address prev, address next) {
+    function _getPrevNext(mapping (address => AccountBurnedLinked) storage accountBurned, uint amount) internal view nonZero(amount) returns (address prev, address next) {
         // Get total.
         uint total = accountBurned[msg.sender].amount + amount;
-        next = first;
+        next = accountBurned[address(0)].next;
         // Search for first account that has burned less than sender.
         // accountBurned[0].amount == 0
         while (total <= accountBurned[next].amount) {
@@ -137,7 +116,7 @@ contract MixTokenBurn {
      * @return next Address of the entry after the new entry.
      */
     function getBurnTokenPrevNext(MixTokenInterface token, uint amount) external view returns (address prev, address next) {
-        (prev, next) = _getPrevNext(tokenAccountBurned[address(token)], tokenAccountBurnedMost[address(token)], amount);
+        (prev, next) = _getPrevNext(tokenAccountBurned[address(token)], amount);
     }
 
     /**
@@ -153,9 +132,9 @@ contract MixTokenBurn {
         // Get token contract for item.
         address token = tokenRegistry.getToken(tokenItems.getParentId(itemId));
         // Get previous and next for tokenAccountBurned linked list.
-        (tokenPrev, tokenNext) = _getPrevNext(tokenAccountBurned[token], tokenAccountBurnedMost[token], amount);
+        (tokenPrev, tokenNext) = _getPrevNext(tokenAccountBurned[token], amount);
         // Get previous and next for itemAccountBurned linked list.
-        (itemPrev, itemNext) = _getPrevNext(itemAccountBurned[itemId], itemAccountBurnedMost[itemId], amount);
+        (itemPrev, itemNext) = _getPrevNext(itemAccountBurned[itemId], amount);
     }
 
     /**
@@ -168,7 +147,6 @@ contract MixTokenBurn {
     function _accountBurnedInsert(mapping (address => AccountBurnedLinked) storage accountBurned, uint amount, address prev, address next) internal {
         // Get total burned by sender for this token.
         uint total = accountBurned[msg.sender].amount + amount;
-        accountBurned[msg.sender].amount = total;
         // Check new previous.
         if (prev != address(0)) {
             require (total <= accountBurned[prev].amount, "Total burned must be less than or equal to previous account.");
@@ -177,29 +155,22 @@ contract MixTokenBurn {
         if (next != address(0)) {
             require (total > accountBurned[next].amount, "Total burned must be more than next account.");
         }
-        // Is the account staying in the same position?
-        if (prev == accountBurned[msg.sender].prev && next == accountBurned[msg.sender].next) {
-            // Nothing more to do.
-            return;
-        }
-        // Remove account links from list.
-        if (accountBurned[msg.sender].prev != address(0)) {
+        bool alreadyExists = accountBurned[msg.sender].amount != 0;
+        accountBurned[msg.sender].amount = total;
+        if (alreadyExists) {
+            // Is the account staying in the same position?
+            if (prev == accountBurned[msg.sender].prev && next == accountBurned[msg.sender].next) {
+                // Nothing more to do.
+                return;
+            }
+            // Remove account links from list.
             accountBurned[accountBurned[msg.sender].prev].next = accountBurned[msg.sender].next;
-        }
-        if (accountBurned[msg.sender].next != address(0)) {
             accountBurned[accountBurned[msg.sender].next].prev = accountBurned[msg.sender].prev;
         }
         // Check there is no gap between prev and next.
-        if (prev != address(0) && next != address(0)) {
-            require (accountBurned[prev].next == next, "Next must be directly after previous.");
-        }
-        // Add account links to list.
-        if (prev != address(0)) {
-            accountBurned[prev].next = msg.sender;
-        }
-        if (next != address(0)) {
-            accountBurned[next].prev = msg.sender;
-        }
+        require (accountBurned[prev].next == next, "Next must be directly after previous.");
+        accountBurned[prev].next = msg.sender;
+        accountBurned[next].prev = msg.sender;
         accountBurned[msg.sender].prev = prev;
         accountBurned[msg.sender].next = next;
     }
@@ -218,16 +189,6 @@ contract MixTokenBurn {
         if (accountBurned[msg.sender].amount == 0) {
             accountTokensBurnedList[msg.sender].push(token);
         }
-        // Check new previous.
-        if (prev == address(0)) {
-            require (next == tokenAccountBurnedMost[token], "Next account must be account that has burned most when no previous account supplied.");
-            tokenAccountBurnedMost[token] = msg.sender;
-        }
-        // Check new next.
-        if (next == address(0)) {
-            require (prev == tokenAccountBurnedLeast[token], "Previous account must be account that has burned least when no next account supplied.");
-            tokenAccountBurnedLeast[token] = msg.sender;
-        }
         _accountBurnedInsert(accountBurned, amount, prev, next);
     }
 
@@ -244,16 +205,6 @@ contract MixTokenBurn {
         // Update list of items burned by this account.
         if (accountBurned[msg.sender].amount == 0) {
             accountItemsBurnedList[msg.sender].push(itemId);
-        }
-        // Check new previous.
-        if (prev == address(0)) {
-            require (next == itemAccountBurnedMost[itemId], "Next account must be account that has burned most when no previous account supplied.");
-            itemAccountBurnedMost[itemId] = msg.sender;
-        }
-        // Check new next.
-        if (next == address(0)) {
-            require (prev == itemAccountBurnedLeast[itemId], "Previous account must be account that has burned least when no next account supplied.");
-            itemAccountBurnedLeast[itemId] = msg.sender;
         }
         _accountBurnedInsert(accountBurned, amount, prev, next);
     }
@@ -364,14 +315,14 @@ contract MixTokenBurn {
     /**
      * @dev Get accounts that have burned.
      * @param accountBurned Linked list of how much each account has burned.
-     * @param start Address of first entry in linked list.
      * @param offset Offset to start results from.
      * @param limit Maximum number of results to return.
      * @return accounts List of accounts that burned the token.
      * @return amounts Amount of token each account burned.
      */
-    function _getAccountsBurned(mapping (address => AccountBurnedLinked) storage accountBurned, address start, uint offset, uint limit) internal view returns (address[] memory accounts, uint[] memory amounts) {
+    function _getAccountsBurned(mapping (address => AccountBurnedLinked) storage accountBurned, uint offset, uint limit) internal view returns (address[] memory accounts, uint[] memory amounts) {
         // Find the account at offset.
+        address start = accountBurned[address(0)].next;
         if (start == address(0)) {
             return (new address[](0), new uint[](0));
         }
@@ -414,10 +365,8 @@ contract MixTokenBurn {
     function getTokenAccountsBurned(address token, uint offset, uint limit) external view returns (address[] memory accounts, uint[] memory amounts) {
         // Get accountBurned mapping.
         mapping (address => AccountBurnedLinked) storage accountBurned = tokenAccountBurned[token];
-        // Get the account that burned the most.
-        address start = tokenAccountBurnedMost[token];
         // Get accounts and corresponding amounts.
-        (accounts, amounts) = _getAccountsBurned(accountBurned, start, offset, limit);
+        (accounts, amounts) = _getAccountsBurned(accountBurned, offset, limit);
     }
 
     /**
@@ -473,10 +422,8 @@ contract MixTokenBurn {
     function getItemAccountsBurned(bytes32 itemId, uint offset, uint limit) external view returns (address[] memory accounts, uint[] memory amounts) {
         // Get accountBurned mapping.
         mapping (address => AccountBurnedLinked) storage accountBurned = itemAccountBurned[itemId];
-        // Get the account that burned the most.
-        address start = itemAccountBurnedMost[itemId];
         // Get accounts and corresponding amounts.
-        (accounts, amounts) = _getAccountsBurned(accountBurned, start, offset, limit);
+        (accounts, amounts) = _getAccountsBurned(accountBurned, offset, limit);
     }
 
     /**

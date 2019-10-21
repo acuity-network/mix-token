@@ -231,6 +231,36 @@ contract MixTokenBurnTest is DSTest {
         assertEq(amounts.length, 2);
         assertEq(amounts[0], 2);
         assertEq(amounts[1], 1);
+
+        (prev, next) = account1.getBurnTokenPrevNext(token0, 2);
+        account1.burnToken(token0, 2, prev, next);
+        assertEq(token0.balanceOf(address(account1)), 6);
+        assertEq(token0.balanceOf(address(mixTokenBurn)), 5);
+        assertEq(mixTokenBurn.getAccountTokensBurnedCount(address(account0)), 1);
+        assertEq(mixTokenBurn.getAccountTokenBurned(address(account0), token0), 1);
+        assertEq(mixTokenBurn.getAccountTokensBurnedCount(address(account1)), 1);
+        assertEq(mixTokenBurn.getAccountTokenBurned(address(account1), token0), 4);
+        (tokens, amounts) = mixTokenBurn.getAccountTokensBurned(address(account0), 0, 0);
+        assertEq(tokens.length, 1);
+        assertEq(tokens[0], address(token0));
+        assertEq(amounts.length, 1);
+        assertEq(amounts[0], 1);
+        (tokens, amounts) = mixTokenBurn.getAccountTokensBurned(address(account1), 0, 4);
+        assertEq(tokens.length, 1);
+        assertEq(tokens[0], address(token0));
+        assertEq(amounts.length, 1);
+        assertEq(amounts[0], 4);
+        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(address(token0), 0, 4);
+        assertEq(accounts.length, 2);
+        assertEq(accounts[0], address(account1));
+        assertEq(accounts[1], address(account0));
+        assertEq(amounts.length, 2);
+        assertEq(amounts[0], 4);
+        assertEq(amounts[1], 1);
+    }
+
+
+    function testBurnTokenItem() public {
     }
 
 }
