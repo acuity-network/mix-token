@@ -291,17 +291,16 @@ contract MixTokenBurn {
     function getAccountTokensBurned(address account, uint offset, uint limit) external view returns (address[] memory tokens, uint[] memory amounts) {
         // Get tokensBurned mapping.
         address[] storage tokensBurned = accountTokensBurnedList[account];
+        uint _limit = 0;
         // Check if offset is beyond the end of the array.
-        if (offset >= tokensBurned.length) {
-            return (new address[](0), new uint[](0));
-        }
-        // Check how many itemIds we can retrieve.
-        uint _limit;
-        if (limit == 0 || offset + limit > tokensBurned.length) {
-            _limit = tokensBurned.length - offset;
-        }
-        else {
-            _limit = limit;
+        if (offset < tokensBurned.length) {
+            // Check how many itemIds we can retrieve.
+            if (limit == 0 || offset + limit > tokensBurned.length) {
+                _limit = tokensBurned.length - offset;
+            }
+            else {
+                _limit = limit;
+            }
         }
         // Allocate memory arrays.
         tokens = new address[](_limit);
@@ -383,17 +382,16 @@ contract MixTokenBurn {
     function getAccountItemsBurned(address account, uint offset, uint limit) external view returns (bytes32[] memory itemIds, uint[] memory amounts) {
         // Get itemsBurned mapping.
         bytes32[] storage itemsBurned = accountItemsBurnedList[account];
+        uint _limit = 0;
         // Check if offset is beyond the end of the array.
-        if (offset >= itemsBurned.length) {
-            return (new bytes32[](0), new uint[](0));
-        }
-        // Check how many itemIds we can retrieve.
-        uint _limit;
-        if (limit == 0 || offset + limit > itemsBurned.length) {
-            _limit = itemsBurned.length - offset;
-        }
-        else {
-            _limit = limit;
+        if (offset < itemsBurned.length) {
+            // Check how many itemIds we can retrieve.
+            if (limit == 0 || offset + limit > itemsBurned.length) {
+                _limit = itemsBurned.length - offset;
+            }
+            else {
+                _limit = limit;
+            }
         }
         // Allocate memory arrays.
         itemIds = new bytes32[](_limit);
