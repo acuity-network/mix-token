@@ -128,7 +128,7 @@ contract MixTokenBurn {
      * @return itemPrev Address of the entry preceeding the new entry in the itemAccountBurned linked list.
      * @return itemNext Address of the entry after the new entry in the itemAccountBurned linked list.
      */
-    function getBurnTokenItemPrevNext(bytes32 itemId, uint amount) external view returns (address tokenPrev, address tokenNext, address itemPrev, address itemNext) {
+    function getBurnItemPrevNext(bytes32 itemId, uint amount) external view returns (address tokenPrev, address tokenNext, address itemPrev, address itemNext) {
         // Get token contract for item.
         address token = tokenRegistry.getToken(tokenItems.getParentId(itemId));
         // Get previous and next for tokenAccountBurned linked list.
@@ -199,7 +199,7 @@ contract MixTokenBurn {
      * @param prev Address of the entry preceeding the new entry.
      * @param next Address of the entry after the new entry.
      */
-    function _burnTokenItem(bytes32 itemId, uint amount, address prev, address next) internal {
+    function _burnItem(bytes32 itemId, uint amount, address prev, address next) internal {
         // Get accountBurned mapping.
         mapping (address => AccountBurnedLinked) storage accountBurned = itemAccountBurned[itemId];
         // Update list of items burned by this account.
@@ -235,15 +235,16 @@ contract MixTokenBurn {
      * @param itemPrev Address of the entry preceeding the new entry in the itemAccountBurned linked list.
      * @param itemNext Address of the entry after the new entry in the itemAccountBurned linked list.
      */
-    function burnTokenItem(bytes32 itemId, uint amount, address tokenPrev, address tokenNext, address itemPrev, address itemNext) external nonZero(amount) {
+    function burnItem(bytes32 itemId, uint amount, address tokenPrev, address tokenNext, address itemPrev, address itemNext) external nonZero(amount) {
         // Get token contract for item.
         MixTokenInterface token = MixTokenInterface(tokenRegistry.getToken(tokenItems.getParentId(itemId)));
+        require (address(token) != address(0), "Item does not have a token to burn.");
         // Transfer the tokens to this contract.
         // Wrap with require () in case the token contract returns false on error instead of throwing.
         require (token.transferFrom(msg.sender, address(this), amount), "Token transfer failed.");
         // Record the tokens as burned.
         _burnToken(address(token), amount, tokenPrev, tokenNext);
-        _burnTokenItem(itemId, amount, itemPrev, itemNext);
+        _burnItem(itemId, amount, itemPrev, itemNext);
         // Update total burned for this item.
         itemBurnedTotal[itemId] += amount;
         // Emit the event.
@@ -266,7 +267,7 @@ contract MixTokenBurn {
      * @param itemId Item to get the amount of tokens account has burned for it.
      * @return Amount of these tokens that this account has burned for the item.
      */
-    function getAccountTokenItemBurned(address account, bytes32 itemId) external view returns (uint) {
+    function getAccountItemBurned(address account, bytes32 itemId) external view returns (uint) {
         return itemAccountBurned[itemId][account].amount;
     }
 
@@ -323,24 +324,17 @@ contract MixTokenBurn {
     function _getAccountsBurned(mapping (address => AccountBurnedLinked) storage accountBurned, uint offset, uint limit) internal view returns (address[] memory accounts, uint[] memory amounts) {
         // Find the account at offset.
         address start = accountBurned[address(0)].next;
-        if (start == address(0)) {
-            return (new address[](0), new uint[](0));
-        }
         uint i = 0;
-        while (i++ < offset) {
+        while (start != (address(0)) && i++ < offset) {
             start = accountBurned[start].next;
-            if (start == (address(0))) {
-                return (new address[](0), new uint[](0));
-            }
         }
         // Check how many accounts we can retrieve.
         address account = start;
         uint _limit = 0;
-        do {
+        while (account != address(0) && _limit < limit) {
             account = accountBurned[account].next;
             _limit++;
         }
-        while (account != address(0) && _limit < limit);
         // Allocate return variables.
         accounts = new address[](_limit);
         amounts = new uint[](_limit);
