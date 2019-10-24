@@ -37,20 +37,20 @@ contract AccountProxy {
         mixTokenBase.authorize(account);
     }
 
-    function getBurnTokenPrevNext(MixTokenInterface token, uint amount) external view returns (address prev, address next) {
-        (prev, next) = mixTokenBurn.getBurnTokenPrevNext(token, amount);
+    function getBurnTokenPrev(MixTokenInterface token, uint amount) external view returns (address prev, address oldPrev) {
+        (prev, oldPrev) = mixTokenBurn.getBurnTokenPrev(token, amount);
     }
 
-    function getBurnItemPrevNext(bytes32 itemId, uint amount) external view returns (address tokenPrev, address tokenNext, address itemPrev, address itemNext) {
-        (tokenPrev, tokenNext, itemPrev, itemNext) = mixTokenBurn.getBurnItemPrevNext(itemId, amount);
+    function getBurnItemPrev(bytes32 itemId, uint amount) external view returns (address tokenPrev, address tokenOldPrev, address itemPrev, address itemOldPrev) {
+        (tokenPrev, tokenOldPrev, itemPrev, itemOldPrev) = mixTokenBurn.getBurnItemPrev(itemId, amount);
     }
 
-    function burnToken(MixTokenInterface token, uint amount, address prev, address next) external {
-        mixTokenBurn.burnToken(token, amount, prev, next);
+    function burnToken(MixTokenInterface token, uint amount, address prev, address oldPrev) external {
+        mixTokenBurn.burnToken(token, amount, prev, oldPrev);
     }
 
-    function burnItem(bytes32 itemId, uint amount, address tokenPrev, address tokenNext, address itemPrev, address itemNext) external {
-        mixTokenBurn.burnItem(itemId, amount, tokenPrev, tokenNext, itemPrev, itemNext);
+    function burnItem(bytes32 itemId, uint amount, address tokenPrev, address tokenOldPrev, address itemPrev, address itemOldPrev) external {
+        mixTokenBurn.burnItem(itemId, amount, tokenPrev, tokenOldPrev, itemPrev, itemOldPrev);
     }
 
 }
@@ -111,47 +111,35 @@ contract MixTokenBurnTest is DSTest {
     }
 
     function testControlBurnTokenZero() public {
-        (address prev, address next) = account0.getBurnTokenPrevNext(token0, 1);
-        account0.burnToken(token0, 1, prev, next);
+        (address prev, address oldPrev) = account0.getBurnTokenPrev(token0, 1);
+        account0.burnToken(token0, 1, prev, oldPrev);
     }
 
     function testFailBurnTokenZero() public {
-        (address prev, address next) = account0.getBurnTokenPrevNext(token0, 0);
-        account0.burnToken(token0, 0, prev, next);
+        (address prev, address oldPrev) = account0.getBurnTokenPrev(token0, 0);
+        account0.burnToken(token0, 0, prev, oldPrev);
     }
 
     function testControlBurnTokenNotEnough() public {
-        (address prev, address next) = account0.getBurnTokenPrevNext(token0, 10);
-        account0.burnToken(token0, 10, prev, next);
+        (address prev, address oldPrev) = account0.getBurnTokenPrev(token0, 10);
+        account0.burnToken(token0, 10, prev, oldPrev);
     }
 
     function testFailBurnTokenNotEnough() public {
-        (address prev, address next) = account0.getBurnTokenPrevNext(token0, 11);
-        account0.burnToken(token0, 11, prev, next);
+        (address prev, address oldPrev) = account0.getBurnTokenPrev(token0, 11);
+        account0.burnToken(token0, 11, prev, oldPrev);
     }
 
-    function testControlBurnTokenNextNotHighest() public {
-        account0.burnToken(token0, 1, address(0), address(0));
-        account1.burnToken(token0, 2, address(0), address(account0));
-        account2.burnToken(token0, 3, address(0), address(account1));
-    }
-
-    function testFailBurnTokenNextNotHighest() public {
-        account0.burnToken(token0, 1, address(0), address(0));
-        account1.burnToken(token0, 2, address(0), address(account0));
-        account2.burnToken(token0, 3, address(0), address(account0));
-    }
-
-    function testControlBurnTokenPrevNotLowest() public {
+    function testControlBurnTokenOldPrevIncorrect() public {
         account0.burnToken(token0, 3, address(0), address(0));
         account1.burnToken(token0, 2, address(account0), address(0));
-        account2.burnToken(token0, 1, address(account1), address(0));
+        account1.burnToken(token0, 4, address(0), address(account0));
     }
 
-    function testFailBurnTokenPrevNotLowest() public {
+    function testFailBurnTokenOldPrevIncorrect() public {
         account0.burnToken(token0, 3, address(0), address(0));
         account1.burnToken(token0, 2, address(account0), address(0));
-        account2.burnToken(token0, 1, address(account0), address(0));
+        account1.burnToken(token0, 4, address(0), address(0));
     }
 
     function testControlBurnTokenNotLessThanOrEqualToPrev() public {
@@ -167,27 +155,13 @@ contract MixTokenBurnTest is DSTest {
     function testControlBurnTokenNotMoreThanNext() public {
         account0.burnToken(token0, 3, address(0), address(0));
         account1.burnToken(token0, 2, address(account0), address(0));
-        account2.burnToken(token0, 3, address(account0), address(account1));
+        account2.burnToken(token0, 3, address(account0), address(0));
     }
 
     function testFailBurnTokenNotMoreThanNext() public {
         account0.burnToken(token0, 3, address(0), address(0));
         account1.burnToken(token0, 2, address(account0), address(0));
-        account2.burnToken(token0, 2, address(account0), address(account1));
-    }
-
-    function testControlBurnTokenNextNotDirectlyAfterPrev() public {
-        account0.burnToken(token0, 5, address(0), address(0));
-        account1.burnToken(token0, 3, address(account0), address(0));
-        account2.burnToken(token0, 1, address(account1), address(0));
-        account3.burnToken(token0, 4, address(account0), address(account1));
-    }
-
-    function testFailBurnTokenNextNotDirectlyAfterPrev() public {
-        account0.burnToken(token0, 5, address(0), address(0));
-        account1.burnToken(token0, 3, address(account0), address(0));
-        account2.burnToken(token0, 1, address(account1), address(0));
-        account3.burnToken(token0, 4, address(account0), address(account2));
+        account2.burnToken(token0, 2, address(account0), address(0));
     }
 
     function testBurnToken() public {
@@ -207,8 +181,8 @@ contract MixTokenBurnTest is DSTest {
         assertEq(mixTokenBurn.getAccountTokensBurnedCount(address(account3)), 0);
         assertEq(mixTokenBurn.getAccountTokenBurned(address(account3), token0), 0);
 
-        (address prev, address next) = account0.getBurnTokenPrevNext(token0, 1);
-        account0.burnToken(token0, 1, prev, next);
+        (address prev, address oldPrev) = account0.getBurnTokenPrev(token0, 1);
+        account0.burnToken(token0, 1, prev, oldPrev);
         assertEq(token0.balanceOf(address(account0)), 9);
         assertEq(token0.balanceOf(address(mixTokenBurn)), 1);
         assertEq(mixTokenBurn.getAccountTokensBurnedCount(address(account0)), 1);
@@ -240,8 +214,8 @@ contract MixTokenBurnTest is DSTest {
         assertEq(amounts.length, 1);
         assertEq(amounts[0], 1);
 
-        (prev, next) = account1.getBurnTokenPrevNext(token0, 2);
-        account1.burnToken(token0, 2, prev, next);
+        (prev, oldPrev) = account1.getBurnTokenPrev(token0, 2);
+        account1.burnToken(token0, 2, prev, oldPrev);
         assertEq(token0.balanceOf(address(account1)), 8);
         assertEq(token0.balanceOf(address(mixTokenBurn)), 3);
         assertEq(mixTokenBurn.getAccountTokensBurnedCount(address(account0)), 1);
@@ -276,8 +250,8 @@ contract MixTokenBurnTest is DSTest {
         assertEq(amounts[0], 2);
         assertEq(amounts[1], 1);
 
-        (prev, next) = account1.getBurnTokenPrevNext(token0, 2);
-        account1.burnToken(token0, 2, prev, next);
+        (prev, oldPrev) = account1.getBurnTokenPrev(token0, 2);
+        account1.burnToken(token0, 2, prev, oldPrev);
         assertEq(token0.balanceOf(address(account1)), 6);
         assertEq(token0.balanceOf(address(mixTokenBurn)), 5);
         assertEq(mixTokenBurn.getAccountTokensBurnedCount(address(account0)), 1);
@@ -312,8 +286,8 @@ contract MixTokenBurnTest is DSTest {
         assertEq(amounts[0], 4);
         assertEq(amounts[1], 1);
 
-        (prev, next) = account2.getBurnTokenPrevNext(token0, 1);
-        account2.burnToken(token0, 1, prev, next);
+        (prev, oldPrev) = account2.getBurnTokenPrev(token0, 1);
+        account2.burnToken(token0, 1, prev, oldPrev);
         assertEq(token0.balanceOf(address(account2)), 9);
         assertEq(token0.balanceOf(address(mixTokenBurn)), 6);
         assertEq(mixTokenBurn.getAccountTokensBurnedCount(address(account0)), 1);
@@ -352,8 +326,8 @@ contract MixTokenBurnTest is DSTest {
         assertEq(amounts[1], 1);
         assertEq(amounts[2], 1);
 
-        (prev, next) = account2.getBurnTokenPrevNext(token0, 8);
-        account2.burnToken(token0, 8, prev, next);
+        (prev, oldPrev) = account2.getBurnTokenPrev(token0, 8);
+        account2.burnToken(token0, 8, prev, oldPrev);
         assertEq(token0.balanceOf(address(account2)), 1);
         assertEq(token0.balanceOf(address(mixTokenBurn)), 14);
         assertEq(mixTokenBurn.getAccountTokensBurnedCount(address(account0)), 1);
@@ -392,8 +366,8 @@ contract MixTokenBurnTest is DSTest {
         assertEq(amounts[1], 4);
         assertEq(amounts[2], 1);
 
-        (prev, next) = account0.getBurnTokenPrevNext(token0, 8);
-        account0.burnToken(token0, 8, prev, next);
+        (prev, oldPrev) = account0.getBurnTokenPrev(token0, 8);
+        account0.burnToken(token0, 8, prev, oldPrev);
         assertEq(token0.balanceOf(address(account0)), 1);
         assertEq(token0.balanceOf(address(mixTokenBurn)), 22);
         assertEq(mixTokenBurn.getAccountTokensBurnedCount(address(account0)), 1);
@@ -432,8 +406,8 @@ contract MixTokenBurnTest is DSTest {
         assertEq(amounts[1], 9);
         assertEq(amounts[2], 4);
 
-        (prev, next) = account3.getBurnTokenPrevNext(token0, 5);
-        account3.burnToken(token0, 5, prev, next);
+        (prev, oldPrev) = account3.getBurnTokenPrev(token0, 5);
+        account3.burnToken(token0, 5, prev, oldPrev);
         assertEq(token0.balanceOf(address(account3)), 5);
         assertEq(token0.balanceOf(address(mixTokenBurn)), 27);
         assertEq(mixTokenBurn.getAccountTokensBurnedCount(address(account0)), 1);
@@ -504,8 +478,8 @@ contract MixTokenBurnTest is DSTest {
         assertEq(mixTokenBurn.getAccountItemsBurnedCount(address(account3)), 0);
         assertEq(mixTokenBurn.getAccountItemBurned(address(account3), itemId0), 0);
 
-        (address tokenPrev, address tokenNext, address itemPrev, address itemNext) = account0.getBurnItemPrevNext(itemId0, 1);
-        account0.burnItem(itemId0, 1, tokenPrev, tokenNext, itemPrev, itemNext);
+        (address tokenPrev, address tokenOldPrev, address itemPrev, address itemOldPrev) = account0.getBurnItemPrev(itemId0, 1);
+        account0.burnItem(itemId0, 1, tokenPrev, tokenOldPrev, itemPrev, itemOldPrev);
         assertEq(token0.balanceOf(address(account0)), 9);
         assertEq(token0.balanceOf(address(mixTokenBurn)), 1);
         assertEq(mixTokenBurn.getItemBurnedTotal(itemId0), 1);
@@ -566,8 +540,8 @@ contract MixTokenBurnTest is DSTest {
         assertEq(amounts.length, 1);
         assertEq(amounts[0], 1);
 
-        (tokenPrev, tokenNext, itemPrev, itemNext) = account1.getBurnItemPrevNext(itemId0, 2);
-        account1.burnItem(itemId0, 2, tokenPrev, tokenNext, itemPrev, itemNext);
+        (tokenPrev, tokenOldPrev, itemPrev, itemOldPrev) = account1.getBurnItemPrev(itemId0, 2);
+        account1.burnItem(itemId0, 2, tokenPrev, tokenOldPrev, itemPrev, itemOldPrev);
         assertEq(token0.balanceOf(address(account1)), 8);
         assertEq(token0.balanceOf(address(mixTokenBurn)), 3);
         assertEq(mixTokenBurn.getItemBurnedTotal(itemId0), 3);
@@ -634,8 +608,8 @@ contract MixTokenBurnTest is DSTest {
         assertEq(amounts[0], 2);
         assertEq(amounts[1], 1);
 
-        (tokenPrev, tokenNext, itemPrev, itemNext) = account1.getBurnItemPrevNext(itemId0, 2);
-        account1.burnItem(itemId0, 2, tokenPrev, tokenNext, itemPrev, itemNext);
+        (tokenPrev, tokenOldPrev, itemPrev, itemOldPrev) = account1.getBurnItemPrev(itemId0, 2);
+        account1.burnItem(itemId0, 2, tokenPrev, tokenOldPrev, itemPrev, itemOldPrev);
         assertEq(token0.balanceOf(address(account1)), 6);
         assertEq(token0.balanceOf(address(mixTokenBurn)), 5);
         assertEq(mixTokenBurn.getItemBurnedTotal(itemId0), 5);
@@ -702,8 +676,8 @@ contract MixTokenBurnTest is DSTest {
         assertEq(amounts[0], 4);
         assertEq(amounts[1], 1);
 
-        (tokenPrev, tokenNext, itemPrev, itemNext) = account2.getBurnItemPrevNext(itemId0, 1);
-        account2.burnItem(itemId0, 1, tokenPrev, tokenNext, itemPrev, itemNext);
+        (tokenPrev, tokenOldPrev, itemPrev, itemOldPrev) = account2.getBurnItemPrev(itemId0, 1);
+        account2.burnItem(itemId0, 1, tokenPrev, tokenOldPrev, itemPrev, itemOldPrev);
         assertEq(token0.balanceOf(address(account2)), 9);
         assertEq(token0.balanceOf(address(mixTokenBurn)), 6);
         assertEq(mixTokenBurn.getItemBurnedTotal(itemId0), 6);
@@ -778,8 +752,8 @@ contract MixTokenBurnTest is DSTest {
         assertEq(amounts[1], 1);
         assertEq(amounts[2], 1);
 
-        (tokenPrev, tokenNext, itemPrev, itemNext) = account2.getBurnItemPrevNext(itemId0, 8);
-        account2.burnItem(itemId0, 8, tokenPrev, tokenNext, itemPrev, itemNext);
+        (tokenPrev, tokenOldPrev, itemPrev, itemOldPrev) = account2.getBurnItemPrev(itemId0, 8);
+        account2.burnItem(itemId0, 8, tokenPrev, tokenOldPrev, itemPrev, itemOldPrev);
         assertEq(token0.balanceOf(address(account2)), 1);
         assertEq(token0.balanceOf(address(mixTokenBurn)), 14);
         assertEq(mixTokenBurn.getItemBurnedTotal(itemId0), 14);
@@ -854,8 +828,8 @@ contract MixTokenBurnTest is DSTest {
         assertEq(amounts[1], 4);
         assertEq(amounts[2], 1);
 
-        (tokenPrev, tokenNext, itemPrev, itemNext) = account0.getBurnItemPrevNext(itemId0, 8);
-        account0.burnItem(itemId0, 8, tokenPrev, tokenNext, itemPrev, itemNext);
+        (tokenPrev, tokenOldPrev, itemPrev, itemOldPrev) = account0.getBurnItemPrev(itemId0, 8);
+        account0.burnItem(itemId0, 8, tokenPrev, tokenOldPrev, itemPrev, itemOldPrev);
         assertEq(token0.balanceOf(address(account0)), 1);
         assertEq(token0.balanceOf(address(mixTokenBurn)), 22);
         assertEq(mixTokenBurn.getItemBurnedTotal(itemId0), 22);
@@ -930,8 +904,8 @@ contract MixTokenBurnTest is DSTest {
         assertEq(amounts[1], 9);
         assertEq(amounts[2], 4);
 
-        (tokenPrev, tokenNext, itemPrev, itemNext) = account3.getBurnItemPrevNext(itemId0, 5);
-        account3.burnItem(itemId0, 5, tokenPrev, tokenNext, itemPrev, itemNext);
+        (tokenPrev, tokenOldPrev, itemPrev, itemOldPrev) = account3.getBurnItemPrev(itemId0, 5);
+        account3.burnItem(itemId0, 5, tokenPrev, tokenOldPrev, itemPrev, itemOldPrev);
         assertEq(token0.balanceOf(address(account3)), 5);
         assertEq(token0.balanceOf(address(mixTokenBurn)), 27);
         assertEq(mixTokenBurn.getItemBurnedTotal(itemId0), 27);
