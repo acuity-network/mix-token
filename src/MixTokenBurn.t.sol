@@ -8,8 +8,8 @@ import "./MixTokenBurn.sol";
 
 contract Token is MixTokenInterface, MixTokenBase {
 
-    constructor(string memory symbol, string memory name, MixTokenRegistry tokenRegistry, bytes32 itemId) public
-        MixTokenBase(symbol, name, tokenRegistry, itemId)
+    constructor(string memory symbol, string memory name) public
+        MixTokenBase(symbol, name)
     {
         accountState[msg.sender].inUse = true;
         accountState[msg.sender].balance = 100;
@@ -86,7 +86,8 @@ contract MixTokenBurnTest is DSTest {
         mixTokenItems = new MixItemDagOneParent(mixItemStoreRegistry);
         mixTokenBurn = new MixTokenBurn(mixTokenRegistry, mixTokenItems);
 
-        token0 = new Token('a', 'A', mixTokenRegistry, itemId);
+        token0 = new Token('a', 'A');
+        mixTokenRegistry.register(itemId, token0);
 
         account0 = new AccountProxy(token0, mixTokenBurn);
         account1 = new AccountProxy(token0, mixTokenBurn);

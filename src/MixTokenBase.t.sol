@@ -7,8 +7,8 @@ import "./MixTokenBase.sol";
 
 contract Token is MixTokenInterface, MixTokenBase {
 
-    constructor(string memory symbol, string memory name, MixTokenRegistry tokenRegistry, bytes32 itemId) public
-        MixTokenBase(symbol, name, tokenRegistry, itemId)
+    constructor(string memory symbol, string memory name) public
+        MixTokenBase(symbol, name)
     {
         accountState[msg.sender].inUse = true;
         accountState[msg.sender].balance = 10;
@@ -48,11 +48,7 @@ contract MixTokenTest is DSTest {
     MockAccount mockAccount;
 
     function setUp() public {
-        mixItemStoreRegistry = new MixItemStoreRegistry();
-        mixItemStore = new MixItemStoreIpfsSha256(mixItemStoreRegistry);
-        bytes32 itemId = mixItemStore.create(hex"02", hex"1234");
-        mixTokenRegistry = new MixTokenRegistry(mixItemStoreRegistry);
-        token = new Token('a', 'A', mixTokenRegistry, itemId);
+        token = new Token('a', 'A');
         mockAccount = new MockAccount(token);
     }
 

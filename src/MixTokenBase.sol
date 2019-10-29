@@ -20,6 +20,7 @@ contract MixTokenBase {
 
     string public symbol;
     string public name;
+    address public owner;
 
     event Transfer(address indexed from, address indexed to, uint value);
     event Authorize(address indexed account, address indexed authorized);
@@ -35,10 +36,10 @@ contract MixTokenBase {
         _;
     }
 
-    constructor(string memory _symbol, string memory _name, MixTokenRegistry registry, bytes32 itemId) public {
+    constructor(string memory _symbol, string memory _name) public {
         symbol = _symbol;
         name = _name;
-        registry.register(itemId);
+        owner = msg.sender;
     }
 
     function _transfer(address from, address to, uint value) internal hasSufficientBalance(from, value) {
@@ -88,8 +89,8 @@ contract MixTokenBase {
         return uint(accountState[account].balance);
     }
 
-    function getAccountAuthorized(address owner, address account) external view returns (bool) {
-        return accountAuthorized[owner][account];
+    function getAccountAuthorized(address account, address accountToCheck) external view returns (bool) {
+        return accountAuthorized[account][accountToCheck];
     }
 
     function getAccountCount() external view returns (uint) {
