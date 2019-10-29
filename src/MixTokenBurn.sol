@@ -1,6 +1,6 @@
 pragma solidity ^0.5.11;
 
-import "mix-item-dag/MixItemDagOneParent.sol";
+import "mix-item-dag/MixItemDagOneParentOnlyOwner.sol";
 import "./MixTokenInterface.sol";
 import "./MixTokenRegistry.sol";
 
@@ -53,7 +53,7 @@ contract MixTokenBurn {
     /**
      * Address of contract linking content items to the token that can be burned for it.
      */
-    MixItemDagOneParent tokenItems;
+    MixItemDagOneParentOnlyOwner tokenItems;
 
     /**
      * @dev A token has been burned.
@@ -75,12 +75,12 @@ contract MixTokenBurn {
 
     /**
      * @param _tokenRegistry Address of the MixTokenRegistry contract.
-     * @param _tokenItems Address of the MixItemDagOneParent contract.
+     * @param _tokenItems Address of the MixItemDagOneParentOnlyOwner contract.
      */
-    constructor(MixTokenRegistry _tokenRegistry, MixItemDagOneParent _tokenItems) public {
+    constructor(MixTokenRegistry _tokenRegistry, MixItemDagOneParentOnlyOwner _tokenItems) public {
         // Store the address of the MixItemStoreRegistry contract.
         tokenRegistry = _tokenRegistry;
-        // Store the address of the MixItemDagOneParent contract.
+        // Store the address of the MixItemDagOneParentOnlyOwner contract.
         tokenItems = _tokenItems;
     }
 

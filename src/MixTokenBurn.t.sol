@@ -61,7 +61,7 @@ contract MixTokenBurnTest is DSTest {
     MixTokenRegistry mixTokenRegistry;
     MixItemStoreRegistry mixItemStoreRegistry;
     MixItemStoreIpfsSha256 mixItemStore;
-    MixItemDagOneParent mixTokenItems;
+    MixItemDagOneParentOnlyOwner mixTokenItems;
     MixTokenBurn mixTokenBurn;
 
     AccountProxy account0;
@@ -83,7 +83,7 @@ contract MixTokenBurnTest is DSTest {
         mixItemStore = new MixItemStoreIpfsSha256(mixItemStoreRegistry);
         bytes32 itemId = mixItemStore.create(hex"02", hex"1234");
         mixTokenRegistry = new MixTokenRegistry(mixItemStoreRegistry);
-        mixTokenItems = new MixItemDagOneParent(mixItemStoreRegistry);
+        mixTokenItems = new MixItemDagOneParentOnlyOwner(mixItemStoreRegistry);
         mixTokenBurn = new MixTokenBurn(mixTokenRegistry, mixTokenItems);
 
         token0 = new Token('a', 'A');
