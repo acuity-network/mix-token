@@ -7,15 +7,17 @@ import "./MixTokenBase.sol";
 contract MixCreatorToken is ERC165, MixTokenInterface, MixTokenBase {
 
     uint public start;
+    address public owner;
     uint public initialBalance;
     uint public dailyPayout;
 
-    constructor(string memory symbol, string memory name, uint _initialBalance, uint _dailyPayout) public
+    constructor(string memory symbol, string memory name, address _owner, uint _initialBalance, uint _dailyPayout) public
         MixTokenBase(symbol, name)
     {
         start = block.timestamp;
-        accountState[msg.sender].inUse = true;
-        accountList.push(msg.sender);
+        owner = _owner;
+        accountState[_owner].inUse = true;
+        accountList.push(_owner);
         initialBalance = _initialBalance;
         dailyPayout = _dailyPayout;
     }
@@ -41,8 +43,7 @@ contract MixCreatorToken is ERC165, MixTokenInterface, MixTokenBase {
      */
     function supportsInterface(bytes4 interfaceId) external view returns (bool) {
         return (interfaceId == 0x01ffc9a7 ||    // EIP165
-            interfaceId == 0x23fb80f7 ||        // MixTokenInterface
-            interfaceId == 0xae5e4bac);         // MixTokenInterface2
+            interfaceId == 0x23fb80f7);         // MixTokenInterface
     }
 
 }

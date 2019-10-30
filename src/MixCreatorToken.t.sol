@@ -19,7 +19,7 @@ contract MixCreatorTokenTest is DSTest {
         mixItemStore = new MixItemStoreIpfsSha256(mixItemStoreRegistry);
         bytes32 itemId = mixItemStore.create(hex"02", hex"1234");
         mixTokenRegistry = new MixTokenRegistry(mixItemStoreRegistry);
-        token = new MixCreatorToken('a', 'A', 10, 1);
+        token = new MixCreatorToken('a', 'A', address(this), 10, 1);
         mixTokenRegistry.register(itemId,  token);
         mockAccount = new MockAccount(token);
     }
@@ -178,7 +178,6 @@ contract MixCreatorTokenTest is DSTest {
 
         MixTokenInterfaceId mixTokenInterfaceId = new MixTokenInterfaceId();
         assertTrue(token.supportsInterface(mixTokenInterfaceId.getInterfaceId()));
-        assertTrue(token.supportsInterface(mixTokenInterfaceId.getInterface2Id()));
     }
 
 }

@@ -2,25 +2,8 @@ pragma solidity ^0.5.11;
 
 import "ds-test/test.sol";
 import "mix-item-store/MixItemStoreIpfsSha256.sol";
-import "./MixTokenBase.sol";
+import "./MixCreatorToken.sol";
 import "./MixTokenBurn.sol";
-
-
-contract Token is MixTokenInterface, MixTokenBase {
-
-    constructor(string memory symbol, string memory name) public
-        MixTokenBase(symbol, name)
-    {
-        accountState[msg.sender].inUse = true;
-        accountState[msg.sender].balance = 100;
-        accountList.push(msg.sender);
-    }
-
-    function totalSupply() external view returns (uint) {
-        return 100;
-    }
-
-}
 
 
 contract AccountProxy {
@@ -70,11 +53,11 @@ contract MixTokenBurnTest is DSTest {
     AccountProxy account3;
     AccountProxy account4;
 
-    Token token0;
-    Token token1;
-    Token token2;
-    Token token3;
-    Token token4;
+    MixCreatorToken token0;
+    MixCreatorToken token1;
+    MixCreatorToken token2;
+    MixCreatorToken token3;
+    MixCreatorToken token4;
 
     bytes32 itemId0;
 
@@ -86,7 +69,7 @@ contract MixTokenBurnTest is DSTest {
         mixTokenItems = new MixItemDagOneParentOnlyOwner(mixItemStoreRegistry);
         mixTokenBurn = new MixTokenBurn(mixTokenRegistry, mixTokenItems);
 
-        token0 = new Token('a', 'A');
+        token0 = new MixCreatorToken('a', 'A', address(this), 100, 0);
         mixTokenRegistry.register(itemId, token0);
 
         account0 = new AccountProxy(token0, mixTokenBurn);

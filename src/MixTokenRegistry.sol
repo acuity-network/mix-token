@@ -1,7 +1,7 @@
 pragma solidity ^0.5.11;
 
 import "mix-item-store/MixItemStoreRegistry.sol";
-import "./MixTokenInterface.sol";
+import "./MixCreatorToken.sol";
 
 
 contract MixTokenRegistry {
@@ -23,7 +23,7 @@ contract MixTokenRegistry {
         itemStoreRegistry = _itemStoreRegistry;
     }
 
-    function register(bytes32 itemId, MixTokenInterface token) external {
+    function register(bytes32 itemId, MixCreatorToken token) external {
         MixItemStoreInterface itemStore = itemStoreRegistry.getItemStore(itemId);
         require (itemStore.getOwner(itemId) == msg.sender, "Item is not owned by sender.");
         require (token.owner() == msg.sender, "Token is not owned by sender.");

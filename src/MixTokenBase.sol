@@ -20,7 +20,6 @@ contract MixTokenBase {
 
     string public symbol;
     string public name;
-    address public owner;
 
     event Transfer(address indexed from, address indexed to, uint value);
     event Authorize(address indexed account, address indexed authorized);
@@ -39,7 +38,6 @@ contract MixTokenBase {
     constructor(string memory _symbol, string memory _name) public {
         symbol = _symbol;
         name = _name;
-        owner = msg.sender;
     }
 
     function _transfer(address from, address to, uint value) internal hasSufficientBalance(from, value) {
