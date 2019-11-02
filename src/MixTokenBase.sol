@@ -115,7 +115,7 @@ contract MixTokenBase is MixTokenInterface {
      * @return true if the contract implements interfaceID.
      */
     function supportsInterface(bytes4 interfaceId) external view returns (bool) {
-        return (interfaceId == 0x01ffc9a7 ||    // EIP165
+        return (interfaceId == 0x01ffc9a7 ||    // ERC165
             interfaceId == 0x23fb80f7);         // MixTokenInterface
     }
 
