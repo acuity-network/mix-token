@@ -1,11 +1,11 @@
 pragma solidity ^0.5.11;
 
 import "mix-item-store/MixItemStoreRegistry.sol";
-import "./MixTokenRegistry.sol";
+import "./MixTokenItemRegistry.sol";
 import "./MixTokenInterface.sol";
 
 
-contract MixTokenBase {
+contract MixTokenBase is MixTokenInterface {
 
     struct AccountState {
         bool inUse;
@@ -107,6 +107,16 @@ contract MixTokenBase {
         for (uint i = 0; i < count; i++) {
             balances[i] = balanceOf(accounts[i]);
         }
+    }
+
+    /**
+     * @dev Interface identification is specified in ERC-165.
+     * @param interfaceId The interface identifier, as specified in ERC-165.
+     * @return true if the contract implements interfaceID.
+     */
+    function supportsInterface(bytes4 interfaceId) external view returns (bool) {
+        return (interfaceId == 0x01ffc9a7 ||    // EIP165
+            interfaceId == 0x23fb80f7);         // MixTokenInterface
     }
 
 }

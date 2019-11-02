@@ -41,7 +41,7 @@ contract MockAccount {
 
 contract MixTokenTest is DSTest {
 
-    MixTokenRegistry mixTokenRegistry;
+    MixTokenItemRegistry mixTokenRegistry;
     Token token;
     MixItemStoreRegistry mixItemStoreRegistry;
     MixItemStoreIpfsSha256 mixItemStore;

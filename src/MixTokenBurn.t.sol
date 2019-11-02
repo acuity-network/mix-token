@@ -41,7 +41,7 @@ contract AccountProxy {
 
 contract MixTokenBurnTest is DSTest {
 
-    MixTokenRegistry mixTokenRegistry;
+    MixTokenItemRegistry mixTokenRegistry;
     MixItemStoreRegistry mixItemStoreRegistry;
     MixItemStoreIpfsSha256 mixItemStore;
     MixItemDagOneParentOnlyOwner mixTokenItems;
@@ -65,12 +65,12 @@ contract MixTokenBurnTest is DSTest {
         mixItemStoreRegistry = new MixItemStoreRegistry();
         mixItemStore = new MixItemStoreIpfsSha256(mixItemStoreRegistry);
         bytes32 itemId = mixItemStore.create(hex"02", hex"1234");
-        mixTokenRegistry = new MixTokenRegistry(mixItemStoreRegistry);
+        mixTokenRegistry = new MixTokenItemRegistry(mixItemStoreRegistry);
         mixTokenItems = new MixItemDagOneParentOnlyOwner(mixItemStoreRegistry);
         mixTokenBurn = new MixTokenBurn(mixTokenRegistry, mixTokenItems);
 
         token0 = new MixCreatorToken('a', 'A', address(this), 100, 0);
-        mixTokenRegistry.register(itemId, token0);
+        mixTokenRegistry.register(token0, itemId);
 
         account0 = new AccountProxy(token0, mixTokenBurn);
         account1 = new AccountProxy(token0, mixTokenBurn);

@@ -4,7 +4,7 @@ import "./ERC165.sol";
 import "./MixTokenBase.sol";
 
 
-contract MixCreatorToken is ERC165, MixTokenInterface, MixTokenBase {
+contract MixCreatorToken is ERC165, MixTokenOwnedInterface, MixTokenBase {
 
     uint public start;
     address public owner;
@@ -34,16 +34,6 @@ contract MixCreatorToken is ERC165, MixTokenInterface, MixTokenBase {
         else {
             balance = uint(accountState[account].balance);
         }
-    }
-
-    /**
-     * @dev Interface identification is specified in ERC-165.
-     * @param interfaceId The interface identifier, as specified in ERC-165.
-     * @return true if the contract implements interfaceID.
-     */
-    function supportsInterface(bytes4 interfaceId) external view returns (bool) {
-        return (interfaceId == 0x01ffc9a7 ||    // EIP165
-            interfaceId == 0x23fb80f7);         // MixTokenInterface
     }
 
 }

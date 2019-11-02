@@ -8,7 +8,7 @@ import "./MixTokenBase.t.sol";
 
 contract MixCreatorTokenTest is DSTest {
 
-    MixTokenRegistry mixTokenRegistry;
+    MixTokenItemRegistry mixTokenRegistry;
     MixItemStoreRegistry mixItemStoreRegistry;
     MixItemStoreIpfsSha256 mixItemStore;
     MixCreatorToken token;
@@ -18,9 +18,9 @@ contract MixCreatorTokenTest is DSTest {
         mixItemStoreRegistry = new MixItemStoreRegistry();
         mixItemStore = new MixItemStoreIpfsSha256(mixItemStoreRegistry);
         bytes32 itemId = mixItemStore.create(hex"02", hex"1234");
-        mixTokenRegistry = new MixTokenRegistry(mixItemStoreRegistry);
+        mixTokenRegistry = new MixTokenItemRegistry(mixItemStoreRegistry);
         token = new MixCreatorToken('a', 'A', address(this), 10, 1);
-        mixTokenRegistry.register(itemId,  token);
+        mixTokenRegistry.register(token, itemId);
         mockAccount = new MockAccount(token);
     }
 
