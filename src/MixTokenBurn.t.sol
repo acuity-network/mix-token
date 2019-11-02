@@ -8,16 +8,25 @@ import "./MixTokenBurn.sol";
 
 contract AccountProxy {
 
-    MixTokenBase mixTokenBase;
+    MixTokenInterface token0;
+    MixTokenInterface token1;
+    MixTokenInterface token2;
+    MixTokenInterface token3;
     MixTokenBurn mixTokenBurn;
 
-    constructor (MixTokenBase _mixTokenBase, MixTokenBurn _mixTokenBurn) public {
-        mixTokenBase = _mixTokenBase;
+    constructor (MixTokenInterface _token0, MixTokenInterface _token1, MixTokenInterface _token2, MixTokenInterface _token3, MixTokenBurn _mixTokenBurn) public {
+        token0 = _token0;
+        token1 = _token1;
+        token2 = _token2;
+        token3 = _token3;
         mixTokenBurn = _mixTokenBurn;
     }
 
     function authorize(address account) external {
-        mixTokenBase.authorize(account);
+        token0.authorize(account);
+        token1.authorize(account);
+        token2.authorize(account);
+        token3.authorize(account);
     }
 
     function getBurnTokenPrev(MixTokenInterface token, uint amount) external view returns (address prev, address oldPrev) {
@@ -51,47 +60,66 @@ contract MixTokenBurnTest is DSTest {
     AccountProxy account1;
     AccountProxy account2;
     AccountProxy account3;
-    AccountProxy account4;
 
     MixCreatorToken token0;
     MixCreatorToken token1;
     MixCreatorToken token2;
     MixCreatorToken token3;
-    MixCreatorToken token4;
 
     bytes32 itemId0;
+    bytes32 itemId1;
+    bytes32 itemId2;
+    bytes32 itemId3;
 
     function setUp() public {
         mixItemStoreRegistry = new MixItemStoreRegistry();
         mixItemStore = new MixItemStoreIpfsSha256(mixItemStoreRegistry);
-        bytes32 itemId = mixItemStore.create(hex"02", hex"1234");
         mixTokenRegistry = new MixTokenItemRegistry(mixItemStoreRegistry);
         mixTokenItems = new MixItemDagOneParentOnlyOwner(mixItemStoreRegistry);
         mixTokenBurn = new MixTokenBurn(mixTokenRegistry, mixTokenItems);
 
+        bytes32 itemId = mixItemStore.create(hex"0200", hex"1234");
         token0 = new MixCreatorToken('a', 'A', address(this), 100, 0);
         mixTokenRegistry.register(token0, itemId);
 
-        account0 = new AccountProxy(token0, mixTokenBurn);
-        account1 = new AccountProxy(token0, mixTokenBurn);
-        account2 = new AccountProxy(token0, mixTokenBurn);
-        account3 = new AccountProxy(token0, mixTokenBurn);
-        account4 = new AccountProxy(token0, mixTokenBurn);
+        // Items attached to token0
+        mixTokenItems.addChild(itemId, mixItemStore, hex"0210");
+        itemId0 = mixItemStore.create(hex"0210", hex"1234");
+        mixTokenItems.addChild(itemId, mixItemStore, hex"0211");
+        itemId1 = mixItemStore.create(hex"0211", hex"1234");
+        mixTokenItems.addChild(itemId, mixItemStore, hex"0212");
+        itemId2 = mixItemStore.create(hex"0212", hex"1234");
+        mixTokenItems.addChild(itemId, mixItemStore, hex"0213");
+        itemId3 = mixItemStore.create(hex"0213", hex"1234");
+
+        itemId = mixItemStore.create(hex"0201", hex"1234");
+        token1 = new MixCreatorToken('a', 'A', address(this), 100, 0);
+        mixTokenRegistry.register(token1, itemId);
+        itemId = mixItemStore.create(hex"0202", hex"1234");
+        token2 = new MixCreatorToken('a', 'A', address(this), 100, 0);
+        mixTokenRegistry.register(token2, itemId);
+        itemId = mixItemStore.create(hex"0203", hex"1234");
+        token3 = new MixCreatorToken('a', 'A', address(this), 100, 0);
+        mixTokenRegistry.register(token3, itemId);
+
+        account0 = new AccountProxy(token0, token1, token2, token3, mixTokenBurn);
+        account1 = new AccountProxy(token0, token1, token2, token3, mixTokenBurn);
+        account2 = new AccountProxy(token0, token1, token2, token3, mixTokenBurn);
+        account3 = new AccountProxy(token0, token1, token2, token3, mixTokenBurn);
 
         token0.transfer(address(account0), 10);
         token0.transfer(address(account1), 10);
         token0.transfer(address(account2), 10);
         token0.transfer(address(account3), 10);
-        token0.transfer(address(account4), 10);
+
+        token1.transfer(address(account0), 10);
+        token2.transfer(address(account0), 10);
+        token3.transfer(address(account0), 10);
 
         account0.authorize(address(mixTokenBurn));
         account1.authorize(address(mixTokenBurn));
         account2.authorize(address(mixTokenBurn));
         account3.authorize(address(mixTokenBurn));
-        account4.authorize(address(mixTokenBurn));
-
-        mixTokenItems.addChild(itemId, mixItemStore, hex"0201");
-        itemId0 = mixItemStore.create(hex"0201", hex"1234");
     }
 
     function testControlBurnTokenZero() public {
@@ -148,7 +176,7 @@ contract MixTokenBurnTest is DSTest {
         account2.burnToken(token0, 2, address(account0), address(0));
     }
 
-    function testBurnToken() public {
+    function testBurnTokenMultipleAccounts() public {
         assertEq(token0.balanceOf(address(mixTokenBurn)), 0);
 
         assertEq(token0.balanceOf(address(account0)), 10);
@@ -435,7 +463,7 @@ contract MixTokenBurnTest is DSTest {
         assertEq(amounts[3], 4);
     }
 
-    function testBurnItem() public {
+    function testBurnItemMultipleAccounts() public {
         assertEq(token0.balanceOf(address(mixTokenBurn)), 0);
         assertEq(mixTokenBurn.getItemBurnedTotal(itemId0), 0);
 
@@ -973,16 +1001,553 @@ contract MixTokenBurnTest is DSTest {
         assertEq(amounts[3], 4);
     }
 
-    function testGetAccountTokensBurned() public {
+    function testBurnTokenMultipleTokens() public {
+        assertEq(token0.balanceOf(address(account0)), 10);
+        assertEq(token0.balanceOf(address(mixTokenBurn)), 0);
+        assertEq(token1.balanceOf(address(account0)), 10);
+        assertEq(token1.balanceOf(address(mixTokenBurn)), 0);
+        assertEq(token2.balanceOf(address(account0)), 10);
+        assertEq(token2.balanceOf(address(mixTokenBurn)), 0);
+        assertEq(token3.balanceOf(address(account0)), 10);
+        assertEq(token3.balanceOf(address(mixTokenBurn)), 0);
+        assertEq(mixTokenBurn.getAccountTokenBurned(address(account0), token0), 0);
+        assertEq(mixTokenBurn.getAccountTokenBurned(address(account0), token1), 0);
+        assertEq(mixTokenBurn.getAccountTokenBurned(address(account0), token2), 0);
+        assertEq(mixTokenBurn.getAccountTokenBurned(address(account0), token3), 0);
+        assertEq(mixTokenBurn.getAccountTokensBurnedCount(address(account0)), 0);
+
+        (address prev, address oldPrev) = account0.getBurnTokenPrev(token0, 1);
+        account0.burnToken(token0, 1, prev, oldPrev);
+        assertEq(token0.balanceOf(address(account0)), 9);
+        assertEq(token0.balanceOf(address(mixTokenBurn)), 1);
+        assertEq(token1.balanceOf(address(account0)), 10);
+        assertEq(token1.balanceOf(address(mixTokenBurn)), 0);
+        assertEq(token2.balanceOf(address(account0)), 10);
+        assertEq(token2.balanceOf(address(mixTokenBurn)), 0);
+        assertEq(token3.balanceOf(address(account0)), 10);
+        assertEq(token3.balanceOf(address(mixTokenBurn)), 0);
+        assertEq(mixTokenBurn.getAccountTokenBurned(address(account0), token0), 1);
+        assertEq(mixTokenBurn.getAccountTokenBurned(address(account0), token1), 0);
+        assertEq(mixTokenBurn.getAccountTokenBurned(address(account0), token2), 0);
+        assertEq(mixTokenBurn.getAccountTokenBurned(address(account0), token3), 0);
+        assertEq(mixTokenBurn.getAccountTokensBurnedCount(address(account0)), 1);
+        (address[] memory tokens, uint[] memory amounts) = mixTokenBurn.getAccountTokensBurned(address(account0), 0, 0);
+        assertEq(tokens.length, 1);
+        assertEq(tokens[0], address(token0));
+        assertEq(amounts.length, 1);
+        assertEq(amounts[0], 1);
+        address[] memory accounts;
+        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(address(token0), 0, 10);
+        assertEq(accounts.length, 1);
+        assertEq(accounts[0], address(account0));
+        assertEq(amounts.length, 1);
+        assertEq(amounts[0], 1);
+        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(address(token1), 0, 10);
+        assertEq(accounts.length, 0);
+        assertEq(amounts.length, 0);
+        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(address(token2), 0, 10);
+        assertEq(accounts.length, 0);
+        assertEq(amounts.length, 0);
+        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(address(token3), 0, 10);
+        assertEq(accounts.length, 0);
+        assertEq(amounts.length, 0);
+
+        (prev, oldPrev) = account0.getBurnTokenPrev(token1, 4);
+        account0.burnToken(token1, 4, prev, oldPrev);
+        assertEq(token0.balanceOf(address(account0)), 9);
+        assertEq(token0.balanceOf(address(mixTokenBurn)), 1);
+        assertEq(token1.balanceOf(address(account0)), 6);
+        assertEq(token1.balanceOf(address(mixTokenBurn)), 4);
+        assertEq(token2.balanceOf(address(account0)), 10);
+        assertEq(token2.balanceOf(address(mixTokenBurn)), 0);
+        assertEq(token3.balanceOf(address(account0)), 10);
+        assertEq(token3.balanceOf(address(mixTokenBurn)), 0);
+        assertEq(mixTokenBurn.getAccountTokenBurned(address(account0), token0), 1);
+        assertEq(mixTokenBurn.getAccountTokenBurned(address(account0), token1), 4);
+        assertEq(mixTokenBurn.getAccountTokenBurned(address(account0), token2), 0);
+        assertEq(mixTokenBurn.getAccountTokenBurned(address(account0), token3), 0);
+        assertEq(mixTokenBurn.getAccountTokensBurnedCount(address(account0)), 2);
+        (tokens, amounts) = mixTokenBurn.getAccountTokensBurned(address(account0), 0, 0);
+        assertEq(tokens.length, 2);
+        assertEq(tokens[0], address(token0));
+        assertEq(tokens[1], address(token1));
+        assertEq(amounts.length, 2);
+        assertEq(amounts[0], 1);
+        assertEq(amounts[1], 4);
+        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(address(token0), 0, 10);
+        assertEq(accounts.length, 1);
+        assertEq(accounts[0], address(account0));
+        assertEq(amounts.length, 1);
+        assertEq(amounts[0], 1);
+        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(address(token1), 0, 10);
+        assertEq(accounts.length, 1);
+        assertEq(accounts[0], address(account0));
+        assertEq(amounts.length, 1);
+        assertEq(amounts[0], 4);
+        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(address(token2), 0, 10);
+        assertEq(accounts.length, 0);
+        assertEq(amounts.length, 0);
+        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(address(token3), 0, 10);
+        assertEq(accounts.length, 0);
+        assertEq(amounts.length, 0);
+
+        (prev, oldPrev) = account0.getBurnTokenPrev(token0, 4);
+        account0.burnToken(token0, 4, prev, oldPrev);
+        assertEq(token0.balanceOf(address(account0)), 5);
+        assertEq(token0.balanceOf(address(mixTokenBurn)), 5);
+        assertEq(token1.balanceOf(address(account0)), 6);
+        assertEq(token1.balanceOf(address(mixTokenBurn)), 4);
+        assertEq(token2.balanceOf(address(account0)), 10);
+        assertEq(token2.balanceOf(address(mixTokenBurn)), 0);
+        assertEq(token3.balanceOf(address(account0)), 10);
+        assertEq(token3.balanceOf(address(mixTokenBurn)), 0);
+        assertEq(mixTokenBurn.getAccountTokenBurned(address(account0), token0), 5);
+        assertEq(mixTokenBurn.getAccountTokenBurned(address(account0), token1), 4);
+        assertEq(mixTokenBurn.getAccountTokenBurned(address(account0), token2), 0);
+        assertEq(mixTokenBurn.getAccountTokenBurned(address(account0), token3), 0);
+        assertEq(mixTokenBurn.getAccountTokensBurnedCount(address(account0)), 2);
+        (tokens, amounts) = mixTokenBurn.getAccountTokensBurned(address(account0), 0, 0);
+        assertEq(tokens.length, 2);
+        assertEq(tokens[0], address(token0));
+        assertEq(tokens[1], address(token1));
+        assertEq(amounts.length, 2);
+        assertEq(amounts[0], 5);
+        assertEq(amounts[1], 4);
+        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(address(token0), 0, 10);
+        assertEq(accounts.length, 1);
+        assertEq(accounts[0], address(account0));
+        assertEq(amounts.length, 1);
+        assertEq(amounts[0], 5);
+        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(address(token1), 0, 10);
+        assertEq(accounts.length, 1);
+        assertEq(accounts[0], address(account0));
+        assertEq(amounts.length, 1);
+        assertEq(amounts[0], 4);
+        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(address(token2), 0, 10);
+        assertEq(accounts.length, 0);
+        assertEq(amounts.length, 0);
+        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(address(token3), 0, 10);
+        assertEq(accounts.length, 0);
+        assertEq(amounts.length, 0);
+
+        (prev, oldPrev) = account0.getBurnTokenPrev(token2, 10);
+        account0.burnToken(token2, 10, prev, oldPrev);
+        assertEq(token0.balanceOf(address(account0)), 5);
+        assertEq(token0.balanceOf(address(mixTokenBurn)), 5);
+        assertEq(token1.balanceOf(address(account0)), 6);
+        assertEq(token1.balanceOf(address(mixTokenBurn)), 4);
+        assertEq(token2.balanceOf(address(account0)), 0);
+        assertEq(token2.balanceOf(address(mixTokenBurn)), 10);
+        assertEq(token3.balanceOf(address(account0)), 10);
+        assertEq(token3.balanceOf(address(mixTokenBurn)), 0);
+        assertEq(mixTokenBurn.getAccountTokenBurned(address(account0), token0), 5);
+        assertEq(mixTokenBurn.getAccountTokenBurned(address(account0), token1), 4);
+        assertEq(mixTokenBurn.getAccountTokenBurned(address(account0), token2), 10);
+        assertEq(mixTokenBurn.getAccountTokenBurned(address(account0), token3), 0);
+        assertEq(mixTokenBurn.getAccountTokensBurnedCount(address(account0)), 3);
+        (tokens, amounts) = mixTokenBurn.getAccountTokensBurned(address(account0), 0, 0);
+        assertEq(tokens.length, 3);
+        assertEq(tokens[0], address(token0));
+        assertEq(tokens[1], address(token1));
+        assertEq(tokens[2], address(token2));
+        assertEq(amounts.length, 3);
+        assertEq(amounts[0], 5);
+        assertEq(amounts[1], 4);
+        assertEq(amounts[2], 10);
+        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(address(token0), 0, 10);
+        assertEq(accounts.length, 1);
+        assertEq(accounts[0], address(account0));
+        assertEq(amounts.length, 1);
+        assertEq(amounts[0], 5);
+        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(address(token1), 0, 10);
+        assertEq(accounts.length, 1);
+        assertEq(accounts[0], address(account0));
+        assertEq(amounts.length, 1);
+        assertEq(amounts[0], 4);
+        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(address(token2), 0, 10);
+        assertEq(accounts.length, 1);
+        assertEq(accounts[0], address(account0));
+        assertEq(amounts.length, 1);
+        assertEq(amounts[0], 10);
+        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(address(token3), 0, 10);
+        assertEq(accounts.length, 0);
+        assertEq(amounts.length, 0);
+
+        (prev, oldPrev) = account0.getBurnTokenPrev(token3, 1);
+        account0.burnToken(token3, 1, prev, oldPrev);
+        assertEq(token0.balanceOf(address(account0)), 5);
+        assertEq(token0.balanceOf(address(mixTokenBurn)), 5);
+        assertEq(token1.balanceOf(address(account0)), 6);
+        assertEq(token1.balanceOf(address(mixTokenBurn)), 4);
+        assertEq(token2.balanceOf(address(account0)), 0);
+        assertEq(token2.balanceOf(address(mixTokenBurn)), 10);
+        assertEq(token3.balanceOf(address(account0)), 9);
+        assertEq(token3.balanceOf(address(mixTokenBurn)), 1);
+        assertEq(mixTokenBurn.getAccountTokenBurned(address(account0), token0), 5);
+        assertEq(mixTokenBurn.getAccountTokenBurned(address(account0), token1), 4);
+        assertEq(mixTokenBurn.getAccountTokenBurned(address(account0), token2), 10);
+        assertEq(mixTokenBurn.getAccountTokenBurned(address(account0), token3), 1);
+        assertEq(mixTokenBurn.getAccountTokensBurnedCount(address(account0)), 4);
+        (tokens, amounts) = mixTokenBurn.getAccountTokensBurned(address(account0), 0, 0);
+        assertEq(tokens.length, 4);
+        assertEq(tokens[0], address(token0));
+        assertEq(tokens[1], address(token1));
+        assertEq(tokens[2], address(token2));
+        assertEq(tokens[3], address(token3));
+        assertEq(amounts.length, 4);
+        assertEq(amounts[0], 5);
+        assertEq(amounts[1], 4);
+        assertEq(amounts[2], 10);
+        assertEq(amounts[3], 1);
+        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(address(token0), 0, 10);
+        assertEq(accounts.length, 1);
+        assertEq(accounts[0], address(account0));
+        assertEq(amounts.length, 1);
+        assertEq(amounts[0], 5);
+        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(address(token1), 0, 10);
+        assertEq(accounts.length, 1);
+        assertEq(accounts[0], address(account0));
+        assertEq(amounts.length, 1);
+        assertEq(amounts[0], 4);
+        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(address(token2), 0, 10);
+        assertEq(accounts.length, 1);
+        assertEq(accounts[0], address(account0));
+        assertEq(amounts.length, 1);
+        assertEq(amounts[0], 10);
+        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(address(token3), 0, 10);
+        assertEq(accounts.length, 1);
+        assertEq(accounts[0], address(account0));
+        assertEq(amounts.length, 1);
+        assertEq(amounts[0], 1);
+
+        (prev, oldPrev) = account0.getBurnTokenPrev(token3, 1);
+        account0.burnToken(token3, 1, prev, oldPrev);
+        assertEq(token0.balanceOf(address(account0)), 5);
+        assertEq(token0.balanceOf(address(mixTokenBurn)), 5);
+        assertEq(token1.balanceOf(address(account0)), 6);
+        assertEq(token1.balanceOf(address(mixTokenBurn)), 4);
+        assertEq(token2.balanceOf(address(account0)), 0);
+        assertEq(token2.balanceOf(address(mixTokenBurn)), 10);
+        assertEq(token3.balanceOf(address(account0)), 8);
+        assertEq(token3.balanceOf(address(mixTokenBurn)), 2);
+        assertEq(mixTokenBurn.getAccountTokenBurned(address(account0), token0), 5);
+        assertEq(mixTokenBurn.getAccountTokenBurned(address(account0), token1), 4);
+        assertEq(mixTokenBurn.getAccountTokenBurned(address(account0), token2), 10);
+        assertEq(mixTokenBurn.getAccountTokenBurned(address(account0), token3), 2);
+        assertEq(mixTokenBurn.getAccountTokensBurnedCount(address(account0)), 4);
+        (tokens, amounts) = mixTokenBurn.getAccountTokensBurned(address(account0), 0, 0);
+        assertEq(tokens.length, 4);
+        assertEq(tokens[0], address(token0));
+        assertEq(tokens[1], address(token1));
+        assertEq(tokens[2], address(token2));
+        assertEq(tokens[3], address(token3));
+        assertEq(amounts.length, 4);
+        assertEq(amounts[0], 5);
+        assertEq(amounts[1], 4);
+        assertEq(amounts[2], 10);
+        assertEq(amounts[3], 2);
+        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(address(token0), 0, 10);
+        assertEq(accounts.length, 1);
+        assertEq(accounts[0], address(account0));
+        assertEq(amounts.length, 1);
+        assertEq(amounts[0], 5);
+        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(address(token1), 0, 10);
+        assertEq(accounts.length, 1);
+        assertEq(accounts[0], address(account0));
+        assertEq(amounts.length, 1);
+        assertEq(amounts[0], 4);
+        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(address(token2), 0, 10);
+        assertEq(accounts.length, 1);
+        assertEq(accounts[0], address(account0));
+        assertEq(amounts.length, 1);
+        assertEq(amounts[0], 10);
+        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(address(token3), 0, 10);
+        assertEq(accounts.length, 1);
+        assertEq(accounts[0], address(account0));
+        assertEq(amounts.length, 1);
+        assertEq(amounts[0], 2);
     }
 
-    function testGetTokenAccountsBurned() public {
-    }
+    function testBurnItemMultipleItems() public {
+        assertEq(token0.balanceOf(address(account0)), 10);
+        assertEq(token0.balanceOf(address(mixTokenBurn)), 0);
+        assertEq(token1.balanceOf(address(account0)), 10);
+        assertEq(token1.balanceOf(address(mixTokenBurn)), 0);
+        assertEq(token2.balanceOf(address(account0)), 10);
+        assertEq(token2.balanceOf(address(mixTokenBurn)), 0);
+        assertEq(token3.balanceOf(address(account0)), 10);
+        assertEq(token3.balanceOf(address(mixTokenBurn)), 0);
+        assertEq(mixTokenBurn.getAccountTokenBurned(address(account0), token0), 0);
+        assertEq(mixTokenBurn.getAccountTokensBurnedCount(address(account0)), 0);
+        assertEq(mixTokenBurn.getAccountItemBurned(address(account0), itemId0), 0);
+        assertEq(mixTokenBurn.getAccountItemBurned(address(account0), itemId1), 0);
+        assertEq(mixTokenBurn.getAccountItemBurned(address(account0), itemId2), 0);
+        assertEq(mixTokenBurn.getAccountItemBurned(address(account0), itemId3), 0);
+        assertEq(mixTokenBurn.getAccountItemsBurnedCount(address(account0)), 0);
 
-    function testGetAccountItemsBurned() public {
-    }
+        (address tokenPrev, address tokenOldPrev, address itemPrev, address itemOldPrev) = account0.getBurnItemPrev(itemId0, 1);
+        account0.burnItem(itemId0, 1, tokenPrev, tokenOldPrev, itemPrev, itemOldPrev);
+        assertEq(token0.balanceOf(address(account0)), 9);
+        assertEq(token0.balanceOf(address(mixTokenBurn)), 1);
+        assertEq(mixTokenBurn.getAccountTokenBurned(address(account0), token0), 1);
+        assertEq(mixTokenBurn.getAccountTokensBurnedCount(address(account0)), 1);
+        (address[] memory tokens, uint[] memory amounts) = mixTokenBurn.getAccountTokensBurned(address(account0), 0, 0);
+        assertEq(tokens.length, 1);
+        assertEq(tokens[0], address(token0));
+        assertEq(amounts.length, 1);
+        assertEq(amounts[0], 1);
+        address[] memory accounts;
+        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(address(token0), 0, 10);
+        assertEq(accounts.length, 1);
+        assertEq(accounts[0], address(account0));
+        assertEq(amounts.length, 1);
+        assertEq(amounts[0], 1);
+        assertEq(mixTokenBurn.getAccountItemBurned(address(account0), itemId0), 1);
+        assertEq(mixTokenBurn.getAccountItemBurned(address(account0), itemId1), 0);
+        assertEq(mixTokenBurn.getAccountItemBurned(address(account0), itemId2), 0);
+        assertEq(mixTokenBurn.getAccountItemBurned(address(account0), itemId3), 0);
+        assertEq(mixTokenBurn.getAccountItemsBurnedCount(address(account0)), 1);
+        bytes32[] memory itemIds;
+        (itemIds, amounts) = mixTokenBurn.getAccountItemsBurned(address(account0), 0, 0);
+        assertEq(itemIds.length, 1);
+        assertEq(itemIds[0], itemId0);
+        assertEq(amounts.length, 1);
+        assertEq(amounts[0], 1);
+        (accounts, amounts) = mixTokenBurn.getItemAccountsBurned(itemId0, 0, 10);
+        assertEq(accounts.length, 1);
+        assertEq(accounts[0], address(account0));
+        assertEq(amounts.length, 1);
+        assertEq(amounts[0], 1);
 
-    function testGetItemAccountsBurned() public {
+        (tokenPrev, tokenOldPrev, itemPrev, itemOldPrev) = account0.getBurnItemPrev(itemId1, 2);
+        account0.burnItem(itemId1, 2, tokenPrev, tokenOldPrev, itemPrev, itemOldPrev);
+        assertEq(token0.balanceOf(address(account0)), 7);
+        assertEq(token0.balanceOf(address(mixTokenBurn)), 3);
+        assertEq(mixTokenBurn.getAccountTokenBurned(address(account0), token0), 3);
+        assertEq(mixTokenBurn.getAccountTokensBurnedCount(address(account0)), 1);
+        (tokens, amounts) = mixTokenBurn.getAccountTokensBurned(address(account0), 0, 0);
+        assertEq(tokens.length, 1);
+        assertEq(tokens[0], address(token0));
+        assertEq(amounts.length, 1);
+        assertEq(amounts[0], 3);
+        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(address(token0), 0, 10);
+        assertEq(accounts.length, 1);
+        assertEq(accounts[0], address(account0));
+        assertEq(amounts.length, 1);
+        assertEq(amounts[0], 3);
+        assertEq(mixTokenBurn.getAccountItemBurned(address(account0), itemId0), 1);
+        assertEq(mixTokenBurn.getAccountItemBurned(address(account0), itemId1), 2);
+        assertEq(mixTokenBurn.getAccountItemBurned(address(account0), itemId2), 0);
+        assertEq(mixTokenBurn.getAccountItemBurned(address(account0), itemId3), 0);
+        assertEq(mixTokenBurn.getAccountItemsBurnedCount(address(account0)), 2);
+        (itemIds, amounts) = mixTokenBurn.getAccountItemsBurned(address(account0), 0, 0);
+        assertEq(itemIds.length, 2);
+        assertEq(itemIds[0], itemId0);
+        assertEq(itemIds[1], itemId1);
+        assertEq(amounts.length, 2);
+        assertEq(amounts[0], 1);
+        assertEq(amounts[1], 2);
+        (accounts, amounts) = mixTokenBurn.getItemAccountsBurned(itemId0, 0, 10);
+        assertEq(accounts.length, 1);
+        assertEq(accounts[0], address(account0));
+        assertEq(amounts.length, 1);
+        assertEq(amounts[0], 1);
+        (accounts, amounts) = mixTokenBurn.getItemAccountsBurned(itemId1, 0, 10);
+        assertEq(accounts.length, 1);
+        assertEq(accounts[0], address(account0));
+        assertEq(amounts.length, 1);
+        assertEq(amounts[0], 2);
+
+        (tokenPrev, tokenOldPrev, itemPrev, itemOldPrev) = account0.getBurnItemPrev(itemId0, 1);
+        account0.burnItem(itemId0, 1, tokenPrev, tokenOldPrev, itemPrev, itemOldPrev);
+        assertEq(token0.balanceOf(address(account0)), 6);
+        assertEq(token0.balanceOf(address(mixTokenBurn)), 4);
+        assertEq(mixTokenBurn.getAccountTokenBurned(address(account0), token0), 4);
+        assertEq(mixTokenBurn.getAccountTokensBurnedCount(address(account0)), 1);
+        (tokens, amounts) = mixTokenBurn.getAccountTokensBurned(address(account0), 0, 0);
+        assertEq(tokens.length, 1);
+        assertEq(tokens[0], address(token0));
+        assertEq(amounts.length, 1);
+        assertEq(amounts[0], 4);
+        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(address(token0), 0, 10);
+        assertEq(accounts.length, 1);
+        assertEq(accounts[0], address(account0));
+        assertEq(amounts.length, 1);
+        assertEq(amounts[0], 4);
+        assertEq(mixTokenBurn.getAccountItemBurned(address(account0), itemId0), 2);
+        assertEq(mixTokenBurn.getAccountItemBurned(address(account0), itemId1), 2);
+        assertEq(mixTokenBurn.getAccountItemBurned(address(account0), itemId2), 0);
+        assertEq(mixTokenBurn.getAccountItemBurned(address(account0), itemId3), 0);
+        assertEq(mixTokenBurn.getAccountItemsBurnedCount(address(account0)), 2);
+        (itemIds, amounts) = mixTokenBurn.getAccountItemsBurned(address(account0), 0, 0);
+        assertEq(itemIds.length, 2);
+        assertEq(itemIds[0], itemId0);
+        assertEq(itemIds[1], itemId1);
+        assertEq(amounts.length, 2);
+        assertEq(amounts[0], 2);
+        assertEq(amounts[1], 2);
+        (accounts, amounts) = mixTokenBurn.getItemAccountsBurned(itemId0, 0, 10);
+        assertEq(accounts.length, 1);
+        assertEq(accounts[0], address(account0));
+        assertEq(amounts.length, 1);
+        assertEq(amounts[0], 2);
+        (accounts, amounts) = mixTokenBurn.getItemAccountsBurned(itemId1, 0, 10);
+        assertEq(accounts.length, 1);
+        assertEq(accounts[0], address(account0));
+        assertEq(amounts.length, 1);
+        assertEq(amounts[0], 2);
+
+        (tokenPrev, tokenOldPrev, itemPrev, itemOldPrev) = account0.getBurnItemPrev(itemId2, 3);
+        account0.burnItem(itemId2, 3, tokenPrev, tokenOldPrev, itemPrev, itemOldPrev);
+        assertEq(token0.balanceOf(address(account0)), 3);
+        assertEq(token0.balanceOf(address(mixTokenBurn)), 7);
+        assertEq(mixTokenBurn.getAccountTokenBurned(address(account0), token0), 7);
+        assertEq(mixTokenBurn.getAccountTokensBurnedCount(address(account0)), 1);
+        (tokens, amounts) = mixTokenBurn.getAccountTokensBurned(address(account0), 0, 0);
+        assertEq(tokens.length, 1);
+        assertEq(tokens[0], address(token0));
+        assertEq(amounts.length, 1);
+        assertEq(amounts[0], 7);
+        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(address(token0), 0, 10);
+        assertEq(accounts.length, 1);
+        assertEq(accounts[0], address(account0));
+        assertEq(amounts.length, 1);
+        assertEq(amounts[0], 7);
+        assertEq(mixTokenBurn.getAccountItemBurned(address(account0), itemId0), 2);
+        assertEq(mixTokenBurn.getAccountItemBurned(address(account0), itemId1), 2);
+        assertEq(mixTokenBurn.getAccountItemBurned(address(account0), itemId2), 3);
+        assertEq(mixTokenBurn.getAccountItemBurned(address(account0), itemId3), 0);
+        assertEq(mixTokenBurn.getAccountItemsBurnedCount(address(account0)), 3);
+        (itemIds, amounts) = mixTokenBurn.getAccountItemsBurned(address(account0), 0, 0);
+        assertEq(itemIds.length, 3);
+        assertEq(itemIds[0], itemId0);
+        assertEq(itemIds[1], itemId1);
+        assertEq(itemIds[2], itemId2);
+        assertEq(amounts.length, 3);
+        assertEq(amounts[0], 2);
+        assertEq(amounts[1], 2);
+        assertEq(amounts[2], 3);
+        (accounts, amounts) = mixTokenBurn.getItemAccountsBurned(itemId0, 0, 10);
+        assertEq(accounts.length, 1);
+        assertEq(accounts[0], address(account0));
+        assertEq(amounts.length, 1);
+        assertEq(amounts[0], 2);
+        (accounts, amounts) = mixTokenBurn.getItemAccountsBurned(itemId1, 0, 10);
+        assertEq(accounts.length, 1);
+        assertEq(accounts[0], address(account0));
+        assertEq(amounts.length, 1);
+        assertEq(amounts[0], 2);
+        (accounts, amounts) = mixTokenBurn.getItemAccountsBurned(itemId2, 0, 10);
+        assertEq(accounts.length, 1);
+        assertEq(accounts[0], address(account0));
+        assertEq(amounts.length, 1);
+        assertEq(amounts[0], 3);
+
+        (tokenPrev, tokenOldPrev, itemPrev, itemOldPrev) = account0.getBurnItemPrev(itemId3, 2);
+        account0.burnItem(itemId3, 2, tokenPrev, tokenOldPrev, itemPrev, itemOldPrev);
+        assertEq(token0.balanceOf(address(account0)), 1);
+        assertEq(token0.balanceOf(address(mixTokenBurn)), 9);
+        assertEq(mixTokenBurn.getAccountTokenBurned(address(account0), token0), 9);
+        assertEq(mixTokenBurn.getAccountTokensBurnedCount(address(account0)), 1);
+        (tokens, amounts) = mixTokenBurn.getAccountTokensBurned(address(account0), 0, 0);
+        assertEq(tokens.length, 1);
+        assertEq(tokens[0], address(token0));
+        assertEq(amounts.length, 1);
+        assertEq(amounts[0], 9);
+        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(address(token0), 0, 10);
+        assertEq(accounts.length, 1);
+        assertEq(accounts[0], address(account0));
+        assertEq(amounts.length, 1);
+        assertEq(amounts[0], 9);
+        assertEq(mixTokenBurn.getAccountItemBurned(address(account0), itemId0), 2);
+        assertEq(mixTokenBurn.getAccountItemBurned(address(account0), itemId1), 2);
+        assertEq(mixTokenBurn.getAccountItemBurned(address(account0), itemId2), 3);
+        assertEq(mixTokenBurn.getAccountItemBurned(address(account0), itemId3), 2);
+        assertEq(mixTokenBurn.getAccountItemsBurnedCount(address(account0)), 4);
+        (itemIds, amounts) = mixTokenBurn.getAccountItemsBurned(address(account0), 0, 0);
+        assertEq(itemIds.length, 4);
+        assertEq(itemIds[0], itemId0);
+        assertEq(itemIds[1], itemId1);
+        assertEq(itemIds[2], itemId2);
+        assertEq(itemIds[3], itemId3);
+        assertEq(amounts.length, 4);
+        assertEq(amounts[0], 2);
+        assertEq(amounts[1], 2);
+        assertEq(amounts[2], 3);
+        assertEq(amounts[3], 2);
+        (accounts, amounts) = mixTokenBurn.getItemAccountsBurned(itemId0, 0, 10);
+        assertEq(accounts.length, 1);
+        assertEq(accounts[0], address(account0));
+        assertEq(amounts.length, 1);
+        assertEq(amounts[0], 2);
+        (accounts, amounts) = mixTokenBurn.getItemAccountsBurned(itemId1, 0, 10);
+        assertEq(accounts.length, 1);
+        assertEq(accounts[0], address(account0));
+        assertEq(amounts.length, 1);
+        assertEq(amounts[0], 2);
+        (accounts, amounts) = mixTokenBurn.getItemAccountsBurned(itemId2, 0, 10);
+        assertEq(accounts.length, 1);
+        assertEq(accounts[0], address(account0));
+        assertEq(amounts.length, 1);
+        assertEq(amounts[0], 3);
+        (accounts, amounts) = mixTokenBurn.getItemAccountsBurned(itemId3, 0, 10);
+        assertEq(accounts.length, 1);
+        assertEq(accounts[0], address(account0));
+        assertEq(amounts.length, 1);
+        assertEq(amounts[0], 2);
+
+        (tokenPrev, tokenOldPrev, itemPrev, itemOldPrev) = account0.getBurnItemPrev(itemId3, 1);
+        account0.burnItem(itemId3, 1, tokenPrev, tokenOldPrev, itemPrev, itemOldPrev);
+        assertEq(token0.balanceOf(address(account0)), 0);
+        assertEq(token0.balanceOf(address(mixTokenBurn)), 10);
+        assertEq(mixTokenBurn.getAccountTokenBurned(address(account0), token0), 10);
+        assertEq(mixTokenBurn.getAccountTokensBurnedCount(address(account0)), 1);
+        (tokens, amounts) = mixTokenBurn.getAccountTokensBurned(address(account0), 0, 0);
+        assertEq(tokens.length, 1);
+        assertEq(tokens[0], address(token0));
+        assertEq(amounts.length, 1);
+        assertEq(amounts[0], 10);
+        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(address(token0), 0, 10);
+        assertEq(accounts.length, 1);
+        assertEq(accounts[0], address(account0));
+        assertEq(amounts.length, 1);
+        assertEq(amounts[0], 10);
+        assertEq(mixTokenBurn.getAccountItemBurned(address(account0), itemId0), 2);
+        assertEq(mixTokenBurn.getAccountItemBurned(address(account0), itemId1), 2);
+        assertEq(mixTokenBurn.getAccountItemBurned(address(account0), itemId2), 3);
+        assertEq(mixTokenBurn.getAccountItemBurned(address(account0), itemId3), 3);
+        assertEq(mixTokenBurn.getAccountItemsBurnedCount(address(account0)), 4);
+        (itemIds, amounts) = mixTokenBurn.getAccountItemsBurned(address(account0), 0, 0);
+        assertEq(itemIds.length, 4);
+        assertEq(itemIds[0], itemId0);
+        assertEq(itemIds[1], itemId1);
+        assertEq(itemIds[2], itemId2);
+        assertEq(itemIds[3], itemId3);
+        assertEq(amounts.length, 4);
+        assertEq(amounts[0], 2);
+        assertEq(amounts[1], 2);
+        assertEq(amounts[2], 3);
+        assertEq(amounts[3], 3);
+        (accounts, amounts) = mixTokenBurn.getItemAccountsBurned(itemId0, 0, 10);
+        assertEq(accounts.length, 1);
+        assertEq(accounts[0], address(account0));
+        assertEq(amounts.length, 1);
+        assertEq(amounts[0], 2);
+        (accounts, amounts) = mixTokenBurn.getItemAccountsBurned(itemId1, 0, 10);
+        assertEq(accounts.length, 1);
+        assertEq(accounts[0], address(account0));
+        assertEq(amounts.length, 1);
+        assertEq(amounts[0], 2);
+        (accounts, amounts) = mixTokenBurn.getItemAccountsBurned(itemId2, 0, 10);
+        assertEq(accounts.length, 1);
+        assertEq(accounts[0], address(account0));
+        assertEq(amounts.length, 1);
+        assertEq(amounts[0], 3);
+        (accounts, amounts) = mixTokenBurn.getItemAccountsBurned(itemId3, 0, 10);
+        assertEq(accounts.length, 1);
+        assertEq(accounts[0], address(account0));
+        assertEq(amounts.length, 1);
+        assertEq(amounts[0], 3);
     }
 
 }
