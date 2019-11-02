@@ -25,6 +25,7 @@ contract MixTokenItemRegistry {
 
     function register(MixTokenOwnedInterface token, bytes32 itemId) external {
         // Check token.
+        require (token.supportsInterface(0x01ffc9a7), "Token is not ERC165.");
         require (token.supportsInterface(0x23fb80f7), "Token is not MixTokenInterface.");
         require (token.owner() == msg.sender, "Token is not owned by sender.");
         // Check item.
