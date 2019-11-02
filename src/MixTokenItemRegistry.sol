@@ -6,8 +6,14 @@ import "./MixTokenInterface.sol";
 
 contract MixTokenItemRegistry {
 
+    /**
+     * Mapping of token to itemId.
+     */
     mapping (address => bytes32) tokenItemId;
 
+    /**
+     * Mapping of itemId to token.
+     */
     mapping (bytes32 => address) itemIdToken;
 
     /**
@@ -23,6 +29,11 @@ contract MixTokenItemRegistry {
         itemStoreRegistry = _itemStoreRegistry;
     }
 
+    /**
+     * @dev register the content item for a token.
+     * @param token Address of token contract.
+     * @param itemId itemId of content item.
+     */
     function register(MixTokenOwnedInterface token, bytes32 itemId) external {
         // Check token.
         require (token.supportsInterface(0x01ffc9a7), "Token is not ERC165.");
@@ -41,11 +52,21 @@ contract MixTokenItemRegistry {
         itemIdToken[itemId] = address(token);
     }
 
+    /**
+     * @dev Get content item for token.
+     * @param token Address of token contract.
+     * @return itemId itemId of content item.
+     */
     function getItemId(address token) external view returns (bytes32 itemId) {
         itemId = tokenItemId[token];
         require (itemId != 0, "Token not registered.");
     }
 
+    /**
+     * @dev Get token for content item.
+     * @param itemId itemId of content item.
+     * @return token Address of token contract.
+     */
     function getToken(bytes32 itemId) external view returns (address token) {
         token = itemIdToken[itemId];
         require (token != address(0), "Item not registered.");
