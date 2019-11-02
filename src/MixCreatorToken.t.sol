@@ -12,7 +12,7 @@ contract MixCreatorTokenTest is DSTest {
     MixItemStoreRegistry mixItemStoreRegistry;
     MixItemStoreIpfsSha256 mixItemStore;
     MixCreatorToken mixCreatorToken;
-    MockAccount mockAccount;
+    MixTokenBaseMockAccount mockAccount;
 
     function setUp() public {
         mixItemStoreRegistry = new MixItemStoreRegistry();
@@ -21,7 +21,7 @@ contract MixCreatorTokenTest is DSTest {
         mixTokenRegistry = new MixTokenItemRegistry(mixItemStoreRegistry);
         mixCreatorToken = new MixCreatorToken('a', 'A', address(this), 10, 1);
         mixTokenRegistry.register(mixCreatorToken, itemId);
-        mockAccount = new MockAccount(mixCreatorToken);
+        mockAccount = new MixTokenBaseMockAccount(mixCreatorToken);
     }
 
     function testConstants() public {

@@ -5,51 +5,17 @@ import "mix-item-store/MixItemStoreIpfsSha256.sol";
 import "./MixTokenBase.sol";
 
 
-contract Token is MixTokenInterface, MixTokenBase {
-
-    constructor(string memory symbol, string memory name) public
-        MixTokenBase(symbol, name)
-    {
-        accountState[msg.sender].inUse = true;
-        accountState[msg.sender].balance = 10;
-        accountList.push(msg.sender);
-    }
-
-    function totalSupply() external view returns (uint) {
-        return 10;
-    }
-
-}
-
-contract MockAccount {
-
-    MixTokenBase token;
-
-    constructor(MixTokenBase _token) public {
-        token = _token;
-    }
-
-    function authorize(address account) public {
-        token.authorize(account);
-    }
-
-    function unauthorize(address account) public {
-        token.unauthorize(account);
-    }
-
-}
-
-contract MixTokenTest is DSTest {
+contract MixTokenBaseTest is DSTest {
 
     MixTokenItemRegistry mixTokenRegistry;
     Token token;
     MixItemStoreRegistry mixItemStoreRegistry;
     MixItemStoreIpfsSha256 mixItemStore;
-    MockAccount mockAccount;
+    MixTokenBaseMockAccount mockAccount;
 
     function setUp() public {
         token = new Token('a', 'A');
-        mockAccount = new MockAccount(token);
+        mockAccount = new MixTokenBaseMockAccount(token);
     }
 
     function testConstants() public {
@@ -194,6 +160,41 @@ contract MixTokenTest is DSTest {
         assertEq(balances[0], 0);
         assertEq(balances[1], 6);
         assertEq(balances[2], 4);
+    }
+
+}
+
+
+contract Token is MixTokenInterface, MixTokenBase {
+
+    constructor(string memory symbol, string memory name) public
+        MixTokenBase(symbol, name)
+    {
+        accountState[msg.sender].inUse = true;
+        accountState[msg.sender].balance = 10;
+        accountList.push(msg.sender);
+    }
+
+    function totalSupply() external view returns (uint) {
+        return 10;
+    }
+
+}
+
+contract MixTokenBaseMockAccount {
+
+    MixTokenBase token;
+
+    constructor(MixTokenBase _token) public {
+        token = _token;
+    }
+
+    function authorize(address account) public {
+        token.authorize(account);
+    }
+
+    function unauthorize(address account) public {
+        token.unauthorize(account);
     }
 
 }
