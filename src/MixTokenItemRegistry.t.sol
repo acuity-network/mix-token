@@ -24,10 +24,6 @@ contract MixTokenItemRegistryTest is DSTest {
         mockAccount = new MixTokenItemRegistryTestMockAccount(mixItemStore);
     }
 
-    function testControl() public {
-        mixTokenRegistry.register(mixCreatorToken, itemId);
-    }
-
     function testFailTokenNotERC165() public {
         MixCreatorTokenNotERC165 token = new MixCreatorTokenNotERC165('a', 'A', address(this), 10, 1);
         mixTokenRegistry.register(token, itemId);
@@ -68,6 +64,20 @@ contract MixTokenItemRegistryTest is DSTest {
         mixTokenRegistry.register(mixCreatorToken, itemId);
         MixCreatorToken token = new MixCreatorToken('a', 'A', address(this), 10, 1);
         mixTokenRegistry.register(token, itemId);
+    }
+
+    function testRegister() public {
+        mixTokenRegistry.register(mixCreatorToken, itemId);
+        assertEq(mixTokenRegistry.getItemId(address(mixCreatorToken)), itemId);
+        assertEq(mixTokenRegistry.getToken(itemId), address(mixCreatorToken));
+    }
+
+    function testFailGetItemIdNotRegistered() public view {
+        mixTokenRegistry.getItemId(address(mixCreatorToken));
+    }
+
+    function testFailGetTokenNotRegistered() public view {
+        mixTokenRegistry.getToken(itemId);
     }
 
 }

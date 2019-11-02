@@ -41,12 +41,14 @@ contract MixTokenItemRegistry {
         itemIdToken[itemId] = address(token);
     }
 
-    function getItemId(address token) external view returns (bytes32) {
-        return tokenItemId[token];
+    function getItemId(address token) external view returns (bytes32 itemId) {
+        itemId = tokenItemId[token];
+        require (itemId != 0, "Token not registered.");
     }
 
-    function getToken(bytes32 itemId) external view returns (address) {
-        return itemIdToken[itemId];
+    function getToken(bytes32 itemId) external view returns (address token) {
+        token = itemIdToken[itemId];
+        require (token != address(0), "Item not registered.");
     }
 
 }
