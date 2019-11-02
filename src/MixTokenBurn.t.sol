@@ -1550,4 +1550,142 @@ contract MixTokenBurnTest is DSTest {
         assertEq(amounts[0], 3);
     }
 
+    function testGetAccountTokensBurned() public {
+        MixTokenInterface[] memory inTokens = new MixTokenInterface[](4);
+        inTokens[0] = token0;
+        inTokens[1] = token1;
+        inTokens[2] = token2;
+        inTokens[3] = token3;
+
+        uint[] memory inAmounts = new uint[](4);
+        inAmounts[0] = 4;
+        inAmounts[1] = 3;
+        inAmounts[2] = 2;
+        inAmounts[3] = 1;
+
+        for (uint i = 0; i < 4; i++) {
+            account0.burnToken(inTokens[i], inAmounts[i], address(0), address(0));
+        }
+
+        for (uint offset = 0; offset < 5; offset++) {
+            for (uint limit = 0; limit < 6; limit++) {
+                (address[] memory tokens, uint[] memory amounts) = mixTokenBurn.getAccountTokensBurned(address(account0), offset, limit);
+                uint length = 4 - offset;
+                if (length < 0) length = 0;
+                if (limit != 0 && length > limit) length = limit;
+                assertEq(tokens.length, length);
+                assertEq(amounts.length, length);
+
+                for (uint i = 0; i < length; i++) {
+                    assertEq(tokens[i], address(inTokens[i + offset]));
+                    assertEq(amounts[i], inAmounts[i + offset]);
+                }
+            }
+        }
+    }
+
+    function testGetTokenAccountsBurned() public {
+        address[] memory inAccounts = new address[](4);
+        inAccounts[0] = address(account0);
+        inAccounts[1] = address(account1);
+        inAccounts[2] = address(account2);
+        inAccounts[3] = address(account3);
+
+        uint[] memory inAmounts = new uint[](4);
+        inAmounts[0] = 4;
+        inAmounts[1] = 3;
+        inAmounts[2] = 2;
+        inAmounts[3] = 1;
+
+        account0.burnToken(token0, 4, address(0), address(0));
+        account1.burnToken(token0, 3, address(account0), address(0));
+        account2.burnToken(token0, 2, address(account1), address(0));
+        account3.burnToken(token0, 1, address(account2), address(0));
+
+        for (uint offset = 0; offset < 5; offset++) {
+            for (uint limit = 0; limit < 6; limit++) {
+                (address[] memory accounts, uint[] memory amounts) = mixTokenBurn.getTokenAccountsBurned(address(token0), offset, limit);
+                uint length = 4 - offset;
+                if (length < 0) length = 0;
+                if (length > limit) length = limit;
+                assertEq(accounts.length, length);
+                assertEq(amounts.length, length);
+
+                for (uint i = 0; i < length; i++) {
+                    assertEq(accounts[i], inAccounts[i + offset]);
+                    assertEq(amounts[i], inAmounts[i + offset]);
+                }
+            }
+        }
+    }
+
+    function testGetAccountItemsBurned() public {
+        bytes32[] memory inItems = new bytes32[](4);
+        inItems[0] = itemId0;
+        inItems[1] = itemId1;
+        inItems[2] = itemId2;
+        inItems[3] = itemId3;
+
+        uint[] memory inAmounts = new uint[](4);
+        inAmounts[0] = 4;
+        inAmounts[1] = 3;
+        inAmounts[2] = 2;
+        inAmounts[3] = 1;
+
+        for (uint i = 0; i < 4; i++) {
+            account0.burnItem(inItems[i], inAmounts[i], address(0), address(0), address(0), address(0));
+        }
+
+        for (uint offset = 0; offset < 5; offset++) {
+            for (uint limit = 0; limit < 6; limit++) {
+                (bytes32[] memory items, uint[] memory amounts) = mixTokenBurn.getAccountItemsBurned(address(account0), offset, limit);
+                uint length = 4 - offset;
+                if (length < 0) length = 0;
+                if (limit != 0 && length > limit) length = limit;
+                assertEq(items.length, length);
+                assertEq(amounts.length, length);
+
+                for (uint i = 0; i < length; i++) {
+                    assertEq(items[i], inItems[i + offset]);
+                    assertEq(amounts[i], inAmounts[i + offset]);
+                }
+            }
+        }
+    }
+
+    function testGetItemAccountsBurned() public {
+        address[] memory inAccounts = new address[](4);
+        inAccounts[0] = address(account0);
+        inAccounts[1] = address(account1);
+        inAccounts[2] = address(account2);
+        inAccounts[3] = address(account3);
+
+        uint[] memory inAmounts = new uint[](4);
+        inAmounts[0] = 4;
+        inAmounts[1] = 3;
+        inAmounts[2] = 2;
+        inAmounts[3] = 1;
+
+        account0.burnItem(itemId0, 4, address(0), address(0), address(0), address(0));
+        account1.burnItem(itemId0, 3, address(account0), address(0), address(account0), address(0));
+        account2.burnItem(itemId0, 2, address(account1), address(0), address(account1), address(0));
+        account3.burnItem(itemId0, 1, address(account2), address(0), address(account2), address(0));
+
+        for (uint offset = 0; offset < 5; offset++) {
+            for (uint limit = 0; limit < 6; limit++) {
+                (address[] memory accounts, uint[] memory amounts) = mixTokenBurn.getItemAccountsBurned(itemId0, offset, limit);
+                uint length = 4 - offset;
+                if (length < 0) length = 0;
+                if (length > limit) length = limit;
+                assertEq(accounts.length, length);
+                assertEq(amounts.length, length);
+
+                for (uint i = 0; i < length; i++) {
+                    assertEq(accounts[i], inAccounts[i + offset]);
+                    assertEq(amounts[i], inAmounts[i + offset]);
+                }
+            }
+        }
+    }
+
 }
