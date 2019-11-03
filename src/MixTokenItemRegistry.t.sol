@@ -24,16 +24,6 @@ contract MixTokenItemRegistryTest is DSTest {
         mockAccount = new MixTokenItemRegistryTestMockAccount(mixItemStore);
     }
 
-    function testFailTokenNotERC165() public {
-        MixCreatorTokenNotERC165 token = new MixCreatorTokenNotERC165('a', 'A', address(this), 10, 1);
-        mixTokenRegistry.register(token, itemId);
-    }
-
-    function testFailTokenNotMixTokenInterface() public {
-        MixCreatorTokenNotMixTokenInterface token = new MixCreatorTokenNotMixTokenInterface('a', 'A', address(this), 10, 1);
-        mixTokenRegistry.register(token, itemId);
-    }
-
     function testFailTokenNotOwnedBySender() public {
         MixCreatorToken token = new MixCreatorTokenNotMixTokenInterface('a', 'A', address(0x1234), 10, 1);
         mixTokenRegistry.register(token, itemId);
