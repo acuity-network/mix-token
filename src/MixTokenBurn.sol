@@ -48,7 +48,7 @@ contract MixTokenBurn {
     /**
      * Address of token registry contract.
      */
-    MixTokenItemRegistry tokenRegistry;
+    MixTokenItemRegistry tokenItemRegistry;
 
     /**
      * Address of contract linking content items to the token that can be burned for it.
@@ -74,12 +74,12 @@ contract MixTokenBurn {
     }
 
     /**
-     * @param _tokenRegistry Address of the MixTokenItemRegistry contract.
+     * @param _tokenItemRegistry Address of the MixTokenItemRegistry contract.
      * @param _tokenItems Address of the MixItemDagOneParentOnlyOwner contract.
      */
-    constructor(MixTokenItemRegistry _tokenRegistry, MixItemDagOneParentOnlyOwner _tokenItems) public {
+    constructor(MixTokenItemRegistry _tokenItemRegistry, MixItemDagOneParentOnlyOwner _tokenItems) public {
         // Store the address of the MixItemStoreRegistry contract.
-        tokenRegistry = _tokenRegistry;
+        tokenItemRegistry = _tokenItemRegistry;
         // Store the address of the MixItemDagOneParentOnlyOwner contract.
         tokenItems = _tokenItems;
     }
@@ -137,7 +137,7 @@ contract MixTokenBurn {
      */
     function getBurnItemPrev(bytes32 itemId, uint amount) external view returns (address tokenPrev, address tokenOldPrev, address itemPrev, address itemOldPrev) {
         // Get token contract for item.
-        address token = tokenRegistry.getToken(tokenItems.getParentId(itemId));
+        address token = tokenItemRegistry.getToken(tokenItems.getParentId(itemId));
         // Get previous and old previous for tokenAccountBurned linked list.
         (tokenPrev, tokenOldPrev) = _getPrev(tokenAccountBurned[token], amount);
         // Get previous and old previous for itemAccountBurned linked list.
@@ -246,7 +246,7 @@ contract MixTokenBurn {
      */
     function burnItem(bytes32 itemId, uint amount, address tokenPrev, address tokenOldPrev, address itemPrev, address itemOldPrev) external nonZero(amount) {
         // Get token contract for item.
-        MixTokenInterface token = MixTokenInterface(tokenRegistry.getToken(tokenItems.getParentId(itemId)));
+        MixTokenInterface token = MixTokenInterface(tokenItemRegistry.getToken(tokenItems.getParentId(itemId)));
         require (address(token) != address(0), "Item does not have a token to burn.");
         // Transfer the tokens to this contract.
         // Wrap with require () in case the token contract returns false on error instead of throwing.
