@@ -78,7 +78,7 @@ contract MixTokenBurn {
      * @param _tokenItems Address of the MixItemDagOneParentOnlyOwner contract.
      */
     constructor(MixTokenItemRegistry _tokenItemRegistry, MixItemDagOneParentOnlyOwner _tokenItems) public {
-        // Store the address of the MixItemStoreRegistry contract.
+        // Store the address of the MixTokenItemRegistry contract.
         tokenItemRegistry = _tokenItemRegistry;
         // Store the address of the MixItemDagOneParentOnlyOwner contract.
         tokenItems = _tokenItems;
