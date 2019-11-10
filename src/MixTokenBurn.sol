@@ -152,11 +152,27 @@ contract MixTokenBurn {
      * @param oldPrev Address of the entry preceeding the old entry.
      */
     function _accountBurnedInsert(mapping (address => AccountBurnedLinked) storage accountBurned, uint amount, address prev, address oldPrev) internal {
+        // Get total.
+        uint total = accountBurned[msg.sender].amount + amount;
+        // Check supplied new previous.
+        if (prev != address(0)) {
+            require (total <= accountBurned[prev].amount, "Total burned must be less than or equal to previous account.");
+        }
+        // Search for first account that has burned less than sender.
+        address next = accountBurned[prev].next;
+        // accountBurned[0].amount == 0
+        while (total <= accountBurned[next].amount) {
+            prev = next;
+            next = accountBurned[prev].next;
+        }
         bool replace = false;
         // Is sender already in the list?
         if (accountBurned[msg.sender].amount > 0) {
-            // Make sure oldPrev is correct.
-            require (accountBurned[oldPrev].next == msg.sender, "Old previous is incorrect.");
+            // Find correct old previous.
+            while (accountBurned[oldPrev].next != msg.sender) {
+                oldPrev = accountBurned[oldPrev].next;
+                require(oldPrev != address(0), "Old previous incorrect.");
+            }
             // Is it in the same position?
             if (prev == oldPrev) {
                 replace = true;
@@ -166,22 +182,13 @@ contract MixTokenBurn {
                 accountBurned[oldPrev].next = accountBurned[msg.sender].next;
             }
         }
-        // Get total burned by sender for this token.
-        uint total = accountBurned[msg.sender].amount + amount;
-        accountBurned[msg.sender].amount = total;
-        // Check new previous.
-        if (prev != address(0)) {
-            require (total <= accountBurned[prev].amount, "Total burned must be less than or equal to previous account.");
-        }
         if (!replace) {
-            address next = accountBurned[prev].next;
-            // Check new next.
-            if (next != address(0)) {
-                require (total > accountBurned[next].amount, "Total burned must be more than next account.");
-            }
+            // Insert into linked list.
             accountBurned[prev].next = msg.sender;
             accountBurned[msg.sender].next = next;
         }
+        // Update the amount.
+        accountBurned[msg.sender].amount = total;
     }
 
     /**

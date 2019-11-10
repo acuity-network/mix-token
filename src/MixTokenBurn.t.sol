@@ -145,13 +145,15 @@ contract MixTokenBurnTest is DSTest {
     function testControlBurnTokenOldPrevIncorrect() public {
         account0.burnToken(token0, 3, address(0), address(0));
         account1.burnToken(token0, 2, address(account0), address(0));
+        account2.burnToken(token0, 1, address(account1), address(0));
         account1.burnToken(token0, 4, address(0), address(account0));
     }
 
     function testFailBurnTokenOldPrevIncorrect() public {
         account0.burnToken(token0, 3, address(0), address(0));
         account1.burnToken(token0, 2, address(account0), address(0));
-        account1.burnToken(token0, 4, address(0), address(0));
+        account2.burnToken(token0, 1, address(account1), address(0));
+        account1.burnToken(token0, 4, address(0), address(account2));
     }
 
     function testControlBurnTokenNotLessThanOrEqualToPrev() public {
@@ -162,18 +164,6 @@ contract MixTokenBurnTest is DSTest {
     function testFailBurnTokenNotLessThanOrEqualToPrev() public {
         account0.burnToken(token0, 3, address(0), address(0));
         account1.burnToken(token0, 4, address(account0), address(0));
-    }
-
-    function testControlBurnTokenNotMoreThanNext() public {
-        account0.burnToken(token0, 3, address(0), address(0));
-        account1.burnToken(token0, 2, address(account0), address(0));
-        account2.burnToken(token0, 3, address(account0), address(0));
-    }
-
-    function testFailBurnTokenNotMoreThanNext() public {
-        account0.burnToken(token0, 3, address(0), address(0));
-        account1.burnToken(token0, 2, address(account0), address(0));
-        account2.burnToken(token0, 2, address(account0), address(0));
     }
 
     function testBurnTokenMultipleAccounts() public {
