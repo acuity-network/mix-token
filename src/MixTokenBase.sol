@@ -7,16 +7,9 @@ import "./MixTokenInterface.sol";
 
 contract MixTokenBase is MixTokenInterface {
 
-    struct AccountState {
-        bool inUse;
-        int128 balance;
-    }
-
-    mapping (address => AccountState) accountState;
+    mapping (address => int) accountBalance;
 
     mapping (address => mapping (address => bool)) accountAuthorized;
-
-    address[] accountList;
 
     string public symbol;
     string public name;
@@ -41,18 +34,9 @@ contract MixTokenBase is MixTokenInterface {
     }
 
     function _transfer(address from, address to, uint value) internal hasSufficientBalance(from, value) {
-        // If value is 0 there is nothing to do.
-        if (value == 0) {
-            return;
-        }
-        // Add receiver to account list if they are not already on it.
-        if (!accountState[to].inUse) {
-            accountState[to].inUse = true;
-            accountList.push(to);
-        }
         // Update balances.
-        accountState[from].balance -= int128(value);
-        accountState[to].balance += int128(value);
+        accountBalance[from] -= int(value);
+        accountBalance[to] += int(value);
         // Log the event.
         emit Transfer(from, to, value);
     }
@@ -84,29 +68,11 @@ contract MixTokenBase is MixTokenInterface {
     }
 
     function balanceOf(address account) public view returns (uint) {
-        return uint(accountState[account].balance);
+        return uint(accountBalance[account]);
     }
 
     function getAccountAuthorized(address account, address accountToCheck) external view returns (bool) {
         return accountAuthorized[account][accountToCheck];
-    }
-
-    function getAccountCount() external view returns (uint) {
-        return accountList.length;
-    }
-
-    function getAccounts() external view returns (address[] memory) {
-        return accountList;
-    }
-
-    function getAccountBalances() external view returns (address[] memory accounts, uint[] memory balances) {
-        uint count = accountList.length;
-        accounts = accountList;
-        balances = new uint[](count);
-
-        for (uint i = 0; i < count; i++) {
-            balances[i] = balanceOf(accounts[i]);
-        }
     }
 
     /**
@@ -114,9 +80,9 @@ contract MixTokenBase is MixTokenInterface {
      * @param interfaceId The interface identifier, as specified in ERC-165.
      * @return true if the contract implements interfaceID.
      */
-    function supportsInterface(bytes4 interfaceId) external view returns (bool) {
+    function supportsInterface(bytes4 interfaceId) public view returns (bool) {
         return (interfaceId == 0x01ffc9a7 ||    // ERC165
-            interfaceId == 0x23fb80f7);         // MixTokenInterface
+            interfaceId == 0xa66762eb);         // MixTokenInterface
     }
 
 }

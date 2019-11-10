@@ -25,7 +25,7 @@ contract MixTokenItemRegistryTest is DSTest {
     }
 
     function testFailTokenNotOwnedBySender() public {
-        MixCreatorToken token = new MixCreatorTokenNotMixTokenInterface('a', 'A', address(0x1234), 10, 1);
+        MixCreatorToken token = new MixCreatorToken('a', 'A', address(0x1234), 10, 1);
         mixTokenRegistry.register(token, itemId);
     }
 
@@ -72,25 +72,6 @@ contract MixTokenItemRegistryTest is DSTest {
 
 }
 
-contract MixCreatorTokenNotERC165 is MixCreatorToken {
-
-    constructor(string memory symbol, string memory name, address _owner, uint _initialBalance, uint _dailyPayout) public
-        MixCreatorToken(symbol, name, _owner, _initialBalance, _dailyPayout) {}
-
-    function supportsInterface(bytes4 interfaceId) external view returns (bool) {
-        return (interfaceId == 0x23fb80f7);         // MixTokenInterface
-    }
-}
-
-contract MixCreatorTokenNotMixTokenInterface is MixCreatorToken {
-
-    constructor(string memory symbol, string memory name, address _owner, uint _initialBalance, uint _dailyPayout) public
-        MixCreatorToken(symbol, name, _owner, _initialBalance, _dailyPayout) {}
-
-    function supportsInterface(bytes4 interfaceId) external view returns (bool) {
-        return (interfaceId == 0x01ffc9a7);    // ERC165
-    }
-}
 
 contract MixTokenItemRegistryTestMockAccount {
 

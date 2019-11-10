@@ -111,73 +111,13 @@ contract MixCreatorTokenTest is DSTest {
         assertEq(mixCreatorToken.balanceOf(address(0x1234)), 5);
     }
 
-    function testAccountList() public {
-        address[] memory accounts;
-        uint[] memory balances;
-
-        assertEq(mixCreatorToken.getAccountCount(), 1);
-        accounts = mixCreatorToken.getAccounts();
-        assertEq(accounts.length, 1);
-        assertEq(accounts[0], address(this));
-        (accounts, balances) = mixCreatorToken.getAccountBalances();
-        assertEq(accounts.length, 1);
-        assertEq(accounts[0], address(this));
-        assertEq(balances.length, 1);
-        assertEq(balances[0], 10);
-
-        assertTrue(mixCreatorToken.transfer(address(0x1234), 5));
-        assertEq(mixCreatorToken.getAccountCount(), 2);
-        accounts = mixCreatorToken.getAccounts();
-        assertEq(accounts.length, 2);
-        assertEq(accounts[0], address(this));
-        assertEq(accounts[1], address(0x1234));
-        (accounts, balances) = mixCreatorToken.getAccountBalances();
-        assertEq(accounts.length, 2);
-        assertEq(accounts[0], address(this));
-        assertEq(accounts[1], address(0x1234));
-        assertEq(balances.length, 2);
-        assertEq(balances[0], 5);
-        assertEq(balances[1], 5);
-
-        assertTrue(mixCreatorToken.transfer(address(0x1234), 1));
-        assertEq(mixCreatorToken.getAccountCount(), 2);
-        accounts = mixCreatorToken.getAccounts();
-        assertEq(accounts.length, 2);
-        assertEq(accounts[0], address(this));
-        assertEq(accounts[1], address(0x1234));
-        (accounts, balances) = mixCreatorToken.getAccountBalances();
-        assertEq(accounts.length, 2);
-        assertEq(accounts[0], address(this));
-        assertEq(accounts[1], address(0x1234));
-        assertEq(balances.length, 2);
-        assertEq(balances[0], 4);
-        assertEq(balances[1], 6);
-
-        assertTrue(mixCreatorToken.transfer(address(0x2345), 4));
-        assertEq(mixCreatorToken.getAccountCount(), 3);
-        accounts = mixCreatorToken.getAccounts();
-        assertEq(accounts.length, 3);
-        assertEq(accounts[0], address(this));
-        assertEq(accounts[1], address(0x1234));
-        assertEq(accounts[2], address(0x2345));
-        (accounts, balances) = mixCreatorToken.getAccountBalances();
-        assertEq(accounts.length, 3);
-        assertEq(accounts[0], address(this));
-        assertEq(accounts[1], address(0x1234));
-        assertEq(accounts[2], address(0x2345));
-        assertEq(balances.length, 3);
-        assertEq(balances[0], 0);
-        assertEq(balances[1], 6);
-        assertEq(balances[2], 4);
-    }
-
     function testSupportsInterface() public {
         assertTrue(!mixCreatorToken.supportsInterface(0x00000000));
         assertTrue(!mixCreatorToken.supportsInterface(0xffffffff));
-        assertTrue(mixCreatorToken.supportsInterface(0x01ffc9a7));    // EIP165
-
-        MixTokenInterfaceId mixTokenInterfaceId = new MixTokenInterfaceId();
-        assertTrue(mixCreatorToken.supportsInterface(mixTokenInterfaceId.getInterfaceId()));
+        assertTrue(mixCreatorToken.supportsInterface(0x01ffc9a7));    // ERC165
+        assertTrue(mixCreatorToken.supportsInterface(new MixTokenInterfaceId().getInterfaceId()));
+        assertTrue(mixCreatorToken.supportsInterface(new MixTokenOwnedInterfaceId().getInterfaceId()));
+        assertTrue(mixCreatorToken.supportsInterface(new MixCreatorTokenInterfaceId().getInterfaceId()));
     }
 
 }

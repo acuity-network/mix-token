@@ -102,66 +102,6 @@ contract MixTokenBaseTest is DSTest {
         assertEq(token.balanceOf(address(0x1234)), 5);
     }
 
-    function testAccountList() public {
-        address[] memory accounts;
-        uint[] memory balances;
-
-        assertEq(token.getAccountCount(), 1);
-        accounts = token.getAccounts();
-        assertEq(accounts.length, 1);
-        assertEq(accounts[0], address(this));
-        (accounts, balances) = token.getAccountBalances();
-        assertEq(accounts.length, 1);
-        assertEq(accounts[0], address(this));
-        assertEq(balances.length, 1);
-        assertEq(balances[0], 10);
-
-        assertTrue(token.transfer(address(0x1234), 5));
-        assertEq(token.getAccountCount(), 2);
-        accounts = token.getAccounts();
-        assertEq(accounts.length, 2);
-        assertEq(accounts[0], address(this));
-        assertEq(accounts[1], address(0x1234));
-        (accounts, balances) = token.getAccountBalances();
-        assertEq(accounts.length, 2);
-        assertEq(accounts[0], address(this));
-        assertEq(accounts[1], address(0x1234));
-        assertEq(balances.length, 2);
-        assertEq(balances[0], 5);
-        assertEq(balances[1], 5);
-
-        assertTrue(token.transfer(address(0x1234), 1));
-        assertEq(token.getAccountCount(), 2);
-        accounts = token.getAccounts();
-        assertEq(accounts.length, 2);
-        assertEq(accounts[0], address(this));
-        assertEq(accounts[1], address(0x1234));
-        (accounts, balances) = token.getAccountBalances();
-        assertEq(accounts.length, 2);
-        assertEq(accounts[0], address(this));
-        assertEq(accounts[1], address(0x1234));
-        assertEq(balances.length, 2);
-        assertEq(balances[0], 4);
-        assertEq(balances[1], 6);
-
-        assertTrue(token.transfer(address(0x2345), 4));
-        assertEq(token.getAccountCount(), 3);
-        accounts = token.getAccounts();
-        assertEq(accounts.length, 3);
-        assertEq(accounts[0], address(this));
-        assertEq(accounts[1], address(0x1234));
-        assertEq(accounts[2], address(0x2345));
-        (accounts, balances) = token.getAccountBalances();
-        assertEq(accounts.length, 3);
-        assertEq(accounts[0], address(this));
-        assertEq(accounts[1], address(0x1234));
-        assertEq(accounts[2], address(0x2345));
-        assertEq(balances.length, 3);
-        assertEq(balances[0], 0);
-        assertEq(balances[1], 6);
-        assertEq(balances[2], 4);
-    }
-
 }
 
 
@@ -170,9 +110,7 @@ contract Token is MixTokenInterface, MixTokenBase {
     constructor(string memory symbol, string memory name) public
         MixTokenBase(symbol, name)
     {
-        accountState[msg.sender].inUse = true;
-        accountState[msg.sender].balance = 10;
-        accountList.push(msg.sender);
+        accountBalance[msg.sender] = 10;
     }
 
     function totalSupply() external view returns (uint) {
@@ -180,6 +118,7 @@ contract Token is MixTokenInterface, MixTokenBase {
     }
 
 }
+
 
 contract MixTokenBaseMockAccount {
 

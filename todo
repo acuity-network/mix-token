@@ -1,0 +1,13 @@
+log item owner in 
+check everything is indexed in correct place
+check numeric bounds
+copy state pointers to memory to reduce gas
+check for correctness
+
+remove accountlist from token?
+combine get/burn?
+
+consider how burn ordering can be used for other purposes, e.g. comment ordering
+
+
+"Allow assignment to external function arguments except for reference types."

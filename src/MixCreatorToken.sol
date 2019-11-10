@@ -4,10 +4,12 @@ import "./ERC165.sol";
 import "./MixTokenBase.sol";
 
 
-contract MixCreatorToken is ERC165, MixTokenOwnedInterface, MixTokenBase {
+contract MixCreatorToken is ERC165, MixTokenInterface, MixTokenOwnedInterface, MixTokenBase {
+
+    // MixTokenOwnedInterface
+    address public owner;
 
     uint public start;
-    address public owner;
     uint public initialBalance;
     uint public dailyPayout;
 
@@ -16,8 +18,6 @@ contract MixCreatorToken is ERC165, MixTokenOwnedInterface, MixTokenBase {
     {
         start = block.timestamp;
         owner = _owner;
-        accountState[_owner].inUse = true;
-        accountList.push(_owner);
         initialBalance = _initialBalance;
         dailyPayout = _dailyPayout;
     }
@@ -29,11 +29,34 @@ contract MixCreatorToken is ERC165, MixTokenOwnedInterface, MixTokenBase {
     function balanceOf(address account) public view returns (uint balance) {
 
         if (account == owner) {
-            balance = uint(accountState[account].balance + int(totalSupply()));
+            balance = uint(accountBalance[account] + int(totalSupply()));
         }
         else {
-            balance = uint(accountState[account].balance);
+            balance = uint(accountBalance[account]);
         }
+    }
+
+    /**
+     * @dev Interface identification is specified in ERC-165.
+     * @param interfaceId The interface identifier, as specified in ERC-165.
+     * @return true if the contract implements interfaceID.
+     */
+    function supportsInterface(bytes4 interfaceId) public view returns (bool) {
+        return (MixTokenBase.supportsInterface(interfaceId) ||
+            interfaceId == 0x8da5cb5b ||        // MixTokenOwnedInterface
+            interfaceId == 0xd6559ea1);         // MixCreatorToken
+    }
+
+}
+
+
+contract MixCreatorTokenInterfaceId {
+
+    function getInterfaceId() external view returns (bytes4) {
+        MixCreatorToken i;
+        return i.start.selector ^
+            i.initialBalance.selector ^
+            i.dailyPayout.selector;
     }
 
 }
