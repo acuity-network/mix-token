@@ -92,9 +92,10 @@ contract MixTokenBurn {
      * @return oldPrev Address of the entry preceeding the old entry.
      */
     function _getPrev(mapping (address => AccountBurnedLinked) storage accountBurned, uint amount) internal view nonZero(amount) returns (address prev, address oldPrev) {
+        // Get sender AccountBurnedLinked.
+        AccountBurnedLinked storage senderBurned = accountBurned[msg.sender];
         // Get total.
-        uint total = accountBurned[msg.sender].amount + amount;
-        prev = address(0);
+        uint total = senderBurned.amount + amount;
         // Search for first account that has burned less than sender.
         address next = accountBurned[address(0)].next;
         // accountBurned[0].amount == 0
@@ -103,10 +104,7 @@ contract MixTokenBurn {
             next = accountBurned[next].next;
         }
         // Is sender already in the list?
-        if (accountBurned[msg.sender].amount == 0) {
-            oldPrev = address(0);
-        }
-        else {
+        if (senderBurned.amount > 0) {
             // Search for account.
             oldPrev = prev;
             while (accountBurned[oldPrev].next != msg.sender) {
@@ -152,8 +150,10 @@ contract MixTokenBurn {
      * @param oldPrev Address of the entry preceeding the old entry.
      */
     function _accountBurnedInsert(mapping (address => AccountBurnedLinked) storage accountBurned, uint amount, address prev, address oldPrev) internal {
+        // Get sender AccountBurnedLinked.
+        AccountBurnedLinked storage senderBurned = accountBurned[msg.sender];
         // Get total.
-        uint total = accountBurned[msg.sender].amount + amount;
+        uint total = senderBurned.amount + amount;
         // Check supplied new previous.
         if (prev != address(0)) {
             require (total <= accountBurned[prev].amount, "Total burned must be less than or equal to previous account.");
@@ -167,7 +167,7 @@ contract MixTokenBurn {
         }
         bool replace = false;
         // Is sender already in the list?
-        if (accountBurned[msg.sender].amount > 0) {
+        if (senderBurned.amount > 0) {
             // Find correct old previous.
             while (accountBurned[oldPrev].next != msg.sender) {
                 oldPrev = accountBurned[oldPrev].next;
@@ -179,16 +179,16 @@ contract MixTokenBurn {
             }
             else {
                 // Remove sender from current position.
-                accountBurned[oldPrev].next = accountBurned[msg.sender].next;
+                accountBurned[oldPrev].next = senderBurned.next;
             }
         }
         if (!replace) {
             // Insert into linked list.
             accountBurned[prev].next = msg.sender;
-            accountBurned[msg.sender].next = next;
+            senderBurned.next = next;
         }
         // Update the amount.
-        accountBurned[msg.sender].amount = total;
+        senderBurned.amount = total;
     }
 
     /**
