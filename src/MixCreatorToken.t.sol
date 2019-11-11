@@ -35,6 +35,22 @@ contract MixCreatorTokenTest is DSTest {
         assertEq(mixCreatorToken.dailyPayout(), 1);
     }
 
+    function testControlInitialBalanceTooBig() public {
+        new MixCreatorToken('a', 'A', address(this), uint224(-1) - 1, 0);
+    }
+
+    function testFailInitialBalanceTooBig() public {
+        new MixCreatorToken('a', 'A', address(this), uint224(-1), 0);
+    }
+
+    function testControlDailyPayoutTooBig() public {
+        new MixCreatorToken('a', 'A', address(this), 0, uint192(-1) - 1);
+    }
+
+    function testFailDailyPayoutTooBig() public {
+        new MixCreatorToken('a', 'A', address(this), 0, uint192(-1));
+    }
+
     function testControlTransferInsufficientBalance() public {
         mixCreatorToken.transfer(address(0x1234), 1);
     }

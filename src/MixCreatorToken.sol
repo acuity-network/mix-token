@@ -38,9 +38,11 @@ contract MixCreatorToken is ERC165, MixTokenInterface, MixTokenOwnedInterface, M
      * @param _initialBalance Initial balance of the token owner.
      * @param _dailyPayout Daily payout to the token owner.
      */
-    constructor(string memory symbol, string memory name, address _owner, uint _initialBalance, uint _dailyPayout) public
-        MixTokenBase(symbol, name)
-    {
+    constructor(string memory symbol, string memory name, address _owner, uint _initialBalance, uint _dailyPayout) public MixTokenBase(symbol, name) {
+        // Make sure parameters are not too large.
+        require (_initialBalance < uint224(-1), "Initial balance is too big.");
+        require (_dailyPayout < uint192(-1), "Daily payout is too big.");
+        // Store parameters in state.
         start = block.timestamp;
         owner = _owner;
         initialBalance = _initialBalance;
@@ -60,13 +62,13 @@ contract MixCreatorToken is ERC165, MixTokenInterface, MixTokenOwnedInterface, M
     * @param account Address of the account.
     * @return The account's token balance.
      */
-    function balanceOf(address account) public view returns (uint balance) {
+    function balanceOf(address account) public view returns (uint) {
         // Is account the token owner?
         if (account == owner) {
-            balance = uint(accountBalance[account] + int(totalSupply()));
+            return uint(accountBalance[account] + int(totalSupply()));
         }
         else {
-            balance = uint(accountBalance[account]);
+            return uint(accountBalance[account]);
         }
     }
 
