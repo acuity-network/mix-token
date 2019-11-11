@@ -13,7 +13,7 @@ import "./MixTokenItemRegistry.sol";
 contract MixTokenBurn {
 
     /**
-     * Amount of tokens burned, linked to next most burned.
+     * @dev Amount of tokens burned, linked to next most burned.
      */
     struct AccountBurnedLinked {
         address next;
@@ -21,37 +21,37 @@ contract MixTokenBurn {
     }
 
     /**
-     * Mapping of account to list of tokens that it has burned.
+     * @dev Mapping of account to list of tokens that it has burned.
      */
     mapping (address => address[]) accountTokensBurnedList;
 
     /**
-     * Mapping of token to mapping of account to AccountBurnedLinked.
+     * @dev Mapping of token to mapping of account to AccountBurnedLinked.
      */
     mapping (address => mapping (address => AccountBurnedLinked)) tokenAccountBurned;
 
     /**
-     * Mapping of account to list of itemIds that it has burned the token for.
+     * @dev Mapping of account to list of itemIds that it has burned the token for.
      */
     mapping (address => bytes32[]) accountItemsBurnedList;
 
     /**
-     * Mapping of itemId to mapping of account to quantity of tokens burned for the item.
+     * @dev Mapping of itemId to mapping of account to quantity of tokens burned for the item.
      */
     mapping (bytes32 => mapping (address => AccountBurnedLinked)) itemAccountBurned;
 
     /**
-     * Mapping of item to total burned for the item.
+     * @dev Mapping of item to total burned for the item.
      */
     mapping (bytes32 => uint) itemBurnedTotal;
 
     /**
-     * Address of token registry contract.
+     * @dev Address of token registry contract.
      */
     MixTokenItemRegistry tokenItemRegistry;
 
     /**
-     * Address of contract linking content items to the token that can be burned for it.
+     * @dev Address of contract linking content items to the token that can be burned for it.
      */
     MixItemDagOneParentOnlyOwner tokenItems;
 

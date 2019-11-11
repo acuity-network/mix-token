@@ -4,15 +4,20 @@ import "mix-item-store/MixItemStoreRegistry.sol";
 import "./MixTokenInterface.sol";
 
 
+/**
+ * @title MixTokenItemRegistry
+ * @author Jonathan Brown <jbrown@mix-blockchain.org>
+ * @dev Contract to map tokens to their content items.
+ */
 contract MixTokenItemRegistry {
 
     /**
-     * Mapping of token to itemId.
+     * @dev Mapping of token to itemId.
      */
     mapping (address => bytes32) tokenItemId;
 
     /**
-     * Mapping of itemId to token.
+     * @dev Mapping of itemId to token.
      */
     mapping (bytes32 => address) itemIdToken;
 

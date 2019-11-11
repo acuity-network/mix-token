@@ -1,5 +1,10 @@
 pragma solidity ^0.5.12;
 
+
+/**
+ * @title ERC165
+ * @dev Interface for ERC-165.
+ */
 interface ERC165 {
     /// @notice Query if a contract implements an interface
     /// @param interfaceID The interface identifier, as specified in ERC-165
