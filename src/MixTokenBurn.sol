@@ -158,7 +158,7 @@ contract MixTokenBurn {
         if (prev != address(0)) {
             require (total <= accountBurned[prev].amount, "Total burned must be less than or equal to previous account.");
         }
-        // Search for first account that has burned less than sender.
+        // Find correct previous. Search for first account that has burned less than sender.
         address next = accountBurned[prev].next;
         // accountBurned[0].amount == 0
         while (total <= accountBurned[next].amount) {
@@ -321,7 +321,7 @@ contract MixTokenBurn {
         // Allocate memory arrays.
         tokens = new address[](_limit);
         amounts = new uint[](_limit);
-        // Populate memory array.
+        // Populate memory arrays.
         for (uint i = 0; i < _limit; i++) {
             tokens[i] = tokensBurned[offset + i];
             amounts[i] = tokenAccountBurned[tokens[i]][account].amount;
