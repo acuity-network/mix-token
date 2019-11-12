@@ -69,7 +69,7 @@ contract MixTokenBurn {
      * @param amount Amount that must not be zero.
      */
     modifier nonZero(uint amount) {
-        require (amount != 0);
+        require (amount != 0, "Amount burned must not be zero.");
         _;
     }
 
@@ -171,7 +171,7 @@ contract MixTokenBurn {
             // Find correct old previous.
             while (accountBurned[oldPrev].next != msg.sender) {
                 oldPrev = accountBurned[oldPrev].next;
-                require(oldPrev != address(0), "Old previous incorrect.");
+                require(oldPrev != address(0), "Old previous account incorrect.");
             }
             // Is it in the same position?
             if (prev == oldPrev) {
