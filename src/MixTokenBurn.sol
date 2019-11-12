@@ -338,23 +338,22 @@ contract MixTokenBurn {
      */
     function _getAccountsBurned(mapping (address => AccountBurnedLinked) storage accountBurned, uint offset, uint limit) internal view returns (address[] memory accounts, uint[] memory amounts) {
         // Find the account at offset.
-        address start = accountBurned[address(0)].next;
+        address account = accountBurned[address(0)].next;
         uint i = 0;
-        while (start != (address(0)) && i++ < offset) {
-            start = accountBurned[start].next;
+        while (account != (address(0)) && i++ < offset) {
+            account = accountBurned[account].next;
         }
         // Check how many accounts we can retrieve.
-        address account = start;
+        address _account = account;
         uint _limit = 0;
-        while (account != address(0) && _limit < limit) {
-            account = accountBurned[account].next;
+        while (_account != address(0) && _limit < limit) {
+            _account = accountBurned[_account].next;
             _limit++;
         }
         // Allocate return variables.
         accounts = new address[](_limit);
         amounts = new uint[](_limit);
         // Populate return variables.
-        account = start;
         i = 0;
         while (i < _limit) {
             accounts[i] = account;
