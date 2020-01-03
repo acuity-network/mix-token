@@ -13,13 +13,15 @@ contract AccountProxy {
     MixTokenInterface token2;
     MixTokenInterface token3;
     MixTokenBurn mixTokenBurn;
+    MixItemStoreIpfsSha256 mixItemStore;
 
-    constructor (MixTokenInterface _token0, MixTokenInterface _token1, MixTokenInterface _token2, MixTokenInterface _token3, MixTokenBurn _mixTokenBurn) public {
+    constructor (MixTokenInterface _token0, MixTokenInterface _token1, MixTokenInterface _token2, MixTokenInterface _token3, MixTokenBurn _mixTokenBurn, MixItemStoreIpfsSha256 _mixItemStore) public {
         token0 = _token0;
         token1 = _token1;
         token2 = _token2;
         token3 = _token3;
         mixTokenBurn = _mixTokenBurn;
+        mixItemStore = _mixItemStore;
     }
 
     function authorize(address account) external {
@@ -45,6 +47,10 @@ contract AccountProxy {
         mixTokenBurn.burnItem(itemId, amount, tokenPrev, tokenOldPrev, itemPrev, itemOldPrev);
     }
 
+    function createItem(bytes32 flagsNonce, bytes32 ipfsHash) external returns (bytes32 itemId) {
+        return mixItemStore.create(flagsNonce, ipfsHash);
+    }
+
 }
 
 
@@ -53,7 +59,6 @@ contract MixTokenBurnTest is DSTest {
     MixTokenItemRegistry mixTokenRegistry;
     MixItemStoreRegistry mixItemStoreRegistry;
     MixItemStoreIpfsSha256 mixItemStore;
-    MixItemDagOneParentOnlyOwner mixTokenItems;
     MixTokenBurn mixTokenBurn;
 
     AccountProxy account0;
@@ -75,22 +80,21 @@ contract MixTokenBurnTest is DSTest {
         mixItemStoreRegistry = new MixItemStoreRegistry();
         mixItemStore = new MixItemStoreIpfsSha256(mixItemStoreRegistry);
         mixTokenRegistry = new MixTokenItemRegistry(mixItemStoreRegistry);
-        mixTokenItems = new MixItemDagOneParentOnlyOwner(mixItemStoreRegistry);
-        mixTokenBurn = new MixTokenBurn(mixTokenRegistry, mixTokenItems);
+        mixTokenBurn = new MixTokenBurn(mixItemStoreRegistry, mixTokenRegistry);
 
         bytes32 itemId = mixItemStore.create(hex"0200", hex"1234");
         token0 = new MixCreatorToken('a', 'A', address(this), 100, 0);
         mixTokenRegistry.register(token0, itemId);
 
         // Items attached to token0
-        mixTokenItems.addChild(itemId, mixItemStore, hex"0210");
         itemId0 = mixItemStore.create(hex"0210", hex"1234");
-        mixTokenItems.addChild(itemId, mixItemStore, hex"0211");
+        mixTokenBurn.setTokenToBurnItem(itemId0, token0);
         itemId1 = mixItemStore.create(hex"0211", hex"1234");
-        mixTokenItems.addChild(itemId, mixItemStore, hex"0212");
+        mixTokenBurn.setTokenToBurnItem(itemId1, token0);
         itemId2 = mixItemStore.create(hex"0212", hex"1234");
-        mixTokenItems.addChild(itemId, mixItemStore, hex"0213");
+        mixTokenBurn.setTokenToBurnItem(itemId2, token0);
         itemId3 = mixItemStore.create(hex"0213", hex"1234");
+        mixTokenBurn.setTokenToBurnItem(itemId3, token0);
 
         itemId = mixItemStore.create(hex"0201", hex"1234");
         token1 = new MixCreatorToken('a', 'A', address(this), 100, 0);
@@ -102,10 +106,10 @@ contract MixTokenBurnTest is DSTest {
         token3 = new MixCreatorToken('a', 'A', address(this), 100, 0);
         mixTokenRegistry.register(token3, itemId);
 
-        account0 = new AccountProxy(token0, token1, token2, token3, mixTokenBurn);
-        account1 = new AccountProxy(token0, token1, token2, token3, mixTokenBurn);
-        account2 = new AccountProxy(token0, token1, token2, token3, mixTokenBurn);
-        account3 = new AccountProxy(token0, token1, token2, token3, mixTokenBurn);
+        account0 = new AccountProxy(token0, token1, token2, token3, mixTokenBurn, mixItemStore);
+        account1 = new AccountProxy(token0, token1, token2, token3, mixTokenBurn, mixItemStore);
+        account2 = new AccountProxy(token0, token1, token2, token3, mixTokenBurn, mixItemStore);
+        account3 = new AccountProxy(token0, token1, token2, token3, mixTokenBurn, mixItemStore);
 
         token0.transfer(address(account0), 10);
         token0.transfer(address(account1), 10);
@@ -166,6 +170,39 @@ contract MixTokenBurnTest is DSTest {
         account1.burnToken(token0, 4, address(account0), address(0));
     }
 
+    function testControlSetTokenToBurnItemNotOwnedBySender() public {
+        bytes32 itemId = mixItemStore.create(hex"0220", hex"1234");
+        mixTokenBurn.setTokenToBurnItem(itemId, token0);
+    }
+
+    function testFailSetTokenToBurnItemNotOwnedBySender() public {
+        bytes32 itemId = account0.createItem(hex"0220", hex"1234");
+        mixTokenBurn.setTokenToBurnItem(itemId, token0);
+    }
+
+    function testControlSetTokenToBurnTokenNotOwnedBySender() public {
+        bytes32 itemId = mixItemStore.create(hex"0220", hex"1234");
+        MixCreatorToken token = new MixCreatorToken('a', 'A', address(this), 100, 0);
+        mixTokenBurn.setTokenToBurnItem(itemId, token);
+    }
+
+    function testFailSetTokenToBurnTokenNotOwnedBySender() public {
+        bytes32 itemId = mixItemStore.create(hex"0220", hex"1234");
+        MixCreatorToken token = new MixCreatorToken('a', 'A', address(account0), 100, 0);
+        mixTokenBurn.setTokenToBurnItem(itemId, token);
+    }
+
+    function testControlSetTokenToBurnAlreadySet() public {
+        bytes32 itemId = mixItemStore.create(hex"0220", hex"1234");
+        mixTokenBurn.setTokenToBurnItem(itemId, token0);
+    }
+
+    function testFailSetTokenToBurnAlreadySet() public {
+        bytes32 itemId = mixItemStore.create(hex"0220", hex"1234");
+        mixTokenBurn.setTokenToBurnItem(itemId, token0);
+        mixTokenBurn.setTokenToBurnItem(itemId, token1);
+    }
+
     function testBurnTokenMultipleAccounts() public {
         assertEq(token0.balanceOf(address(mixTokenBurn)), 0);
 
@@ -210,7 +247,7 @@ contract MixTokenBurnTest is DSTest {
         assertEq(tokens.length, 0);
         assertEq(amounts.length, 0);
         address[] memory accounts;
-        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(address(token0), 0, 10);
+        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(token0, 0, 10);
         assertEq(accounts.length, 1);
         assertEq(accounts[0], address(account0));
         assertEq(amounts.length, 1);
@@ -244,7 +281,7 @@ contract MixTokenBurnTest is DSTest {
         (tokens, amounts) = mixTokenBurn.getAccountTokensBurned(address(account3), 0, 0);
         assertEq(tokens.length, 0);
         assertEq(amounts.length, 0);
-        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(address(token0), 0, 10);
+        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(token0, 0, 10);
         assertEq(accounts.length, 2);
         assertEq(accounts[0], address(account1));
         assertEq(accounts[1], address(account0));
@@ -280,7 +317,7 @@ contract MixTokenBurnTest is DSTest {
         (tokens, amounts) = mixTokenBurn.getAccountTokensBurned(address(account3), 0, 0);
         assertEq(tokens.length, 0);
         assertEq(amounts.length, 0);
-        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(address(token0), 0, 10);
+        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(token0, 0, 10);
         assertEq(accounts.length, 2);
         assertEq(accounts[0], address(account1));
         assertEq(accounts[1], address(account0));
@@ -318,7 +355,7 @@ contract MixTokenBurnTest is DSTest {
         (tokens, amounts) = mixTokenBurn.getAccountTokensBurned(address(account3), 0, 0);
         assertEq(tokens.length, 0);
         assertEq(amounts.length, 0);
-        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(address(token0), 0, 10);
+        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(token0, 0, 10);
         assertEq(accounts.length, 3);
         assertEq(accounts[0], address(account1));
         assertEq(accounts[1], address(account0));
@@ -358,7 +395,7 @@ contract MixTokenBurnTest is DSTest {
         (tokens, amounts) = mixTokenBurn.getAccountTokensBurned(address(account3), 0, 0);
         assertEq(tokens.length, 0);
         assertEq(amounts.length, 0);
-        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(address(token0), 0, 10);
+        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(token0, 0, 10);
         assertEq(accounts.length, 3);
         assertEq(accounts[0], address(account2));
         assertEq(accounts[1], address(account1));
@@ -398,7 +435,7 @@ contract MixTokenBurnTest is DSTest {
         (tokens, amounts) = mixTokenBurn.getAccountTokensBurned(address(account3), 0, 0);
         assertEq(tokens.length, 0);
         assertEq(amounts.length, 0);
-        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(address(token0), 0, 10);
+        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(token0, 0, 10);
         assertEq(accounts.length, 3);
         assertEq(accounts[0], address(account2));
         assertEq(accounts[1], address(account0));
@@ -440,7 +477,7 @@ contract MixTokenBurnTest is DSTest {
         assertEq(tokens[0], address(token0));
         assertEq(amounts.length, 1);
         assertEq(amounts[0], 5);
-        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(address(token0), 0, 10);
+        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(token0, 0, 10);
         assertEq(accounts.length, 4);
         assertEq(accounts[0], address(account2));
         assertEq(accounts[1], address(account0));
@@ -531,7 +568,7 @@ contract MixTokenBurnTest is DSTest {
         assertEq(itemIds.length, 0);
         assertEq(amounts.length, 0);
         address[] memory accounts;
-        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(address(token0), 0, 10);
+        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(token0, 0, 10);
         assertEq(accounts.length, 1);
         assertEq(accounts[0], address(account0));
         assertEq(amounts.length, 1);
@@ -595,7 +632,7 @@ contract MixTokenBurnTest is DSTest {
         (itemIds, amounts) = mixTokenBurn.getAccountItemsBurned(address(account3), 0, 0);
         assertEq(itemIds.length, 0);
         assertEq(amounts.length, 0);
-        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(address(token0), 0, 10);
+        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(token0, 0, 10);
         assertEq(accounts.length, 2);
         assertEq(accounts[0], address(account1));
         assertEq(accounts[1], address(account0));
@@ -663,7 +700,7 @@ contract MixTokenBurnTest is DSTest {
         (itemIds, amounts) = mixTokenBurn.getAccountItemsBurned(address(account3), 0, 0);
         assertEq(itemIds.length, 0);
         assertEq(amounts.length, 0);
-        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(address(token0), 0, 10);
+        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(token0, 0, 10);
         assertEq(accounts.length, 2);
         assertEq(accounts[0], address(account1));
         assertEq(accounts[1], address(account0));
@@ -735,7 +772,7 @@ contract MixTokenBurnTest is DSTest {
         (itemIds, amounts) = mixTokenBurn.getAccountItemsBurned(address(account3), 0, 0);
         assertEq(itemIds.length, 0);
         assertEq(amounts.length, 0);
-        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(address(token0), 0, 10);
+        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(token0, 0, 10);
         assertEq(accounts.length, 3);
         assertEq(accounts[0], address(account1));
         assertEq(accounts[1], address(account0));
@@ -811,7 +848,7 @@ contract MixTokenBurnTest is DSTest {
         (itemIds, amounts) = mixTokenBurn.getAccountItemsBurned(address(account3), 0, 0);
         assertEq(itemIds.length, 0);
         assertEq(amounts.length, 0);
-        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(address(token0), 0, 10);
+        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(token0, 0, 10);
         assertEq(accounts.length, 3);
         assertEq(accounts[0], address(account2));
         assertEq(accounts[1], address(account1));
@@ -887,7 +924,7 @@ contract MixTokenBurnTest is DSTest {
         (itemIds, amounts) = mixTokenBurn.getAccountItemsBurned(address(account3), 0, 0);
         assertEq(itemIds.length, 0);
         assertEq(amounts.length, 0);
-        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(address(token0), 0, 10);
+        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(token0, 0, 10);
         assertEq(accounts.length, 3);
         assertEq(accounts[0], address(account2));
         assertEq(accounts[1], address(account0));
@@ -967,7 +1004,7 @@ contract MixTokenBurnTest is DSTest {
         assertEq(itemIds[0], itemId0);
         assertEq(amounts.length, 1);
         assertEq(amounts[0], 5);
-        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(address(token0), 0, 10);
+        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(token0, 0, 10);
         assertEq(accounts.length, 4);
         assertEq(accounts[0], address(account2));
         assertEq(accounts[1], address(account0));
@@ -1027,18 +1064,18 @@ contract MixTokenBurnTest is DSTest {
         assertEq(amounts.length, 1);
         assertEq(amounts[0], 1);
         address[] memory accounts;
-        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(address(token0), 0, 10);
+        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(token0, 0, 10);
         assertEq(accounts.length, 1);
         assertEq(accounts[0], address(account0));
         assertEq(amounts.length, 1);
         assertEq(amounts[0], 1);
-        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(address(token1), 0, 10);
+        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(token1, 0, 10);
         assertEq(accounts.length, 0);
         assertEq(amounts.length, 0);
-        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(address(token2), 0, 10);
+        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(token2, 0, 10);
         assertEq(accounts.length, 0);
         assertEq(amounts.length, 0);
-        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(address(token3), 0, 10);
+        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(token3, 0, 10);
         assertEq(accounts.length, 0);
         assertEq(amounts.length, 0);
 
@@ -1064,20 +1101,20 @@ contract MixTokenBurnTest is DSTest {
         assertEq(amounts.length, 2);
         assertEq(amounts[0], 1);
         assertEq(amounts[1], 4);
-        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(address(token0), 0, 10);
+        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(token0, 0, 10);
         assertEq(accounts.length, 1);
         assertEq(accounts[0], address(account0));
         assertEq(amounts.length, 1);
         assertEq(amounts[0], 1);
-        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(address(token1), 0, 10);
+        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(token1, 0, 10);
         assertEq(accounts.length, 1);
         assertEq(accounts[0], address(account0));
         assertEq(amounts.length, 1);
         assertEq(amounts[0], 4);
-        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(address(token2), 0, 10);
+        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(token2, 0, 10);
         assertEq(accounts.length, 0);
         assertEq(amounts.length, 0);
-        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(address(token3), 0, 10);
+        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(token3, 0, 10);
         assertEq(accounts.length, 0);
         assertEq(amounts.length, 0);
 
@@ -1103,20 +1140,20 @@ contract MixTokenBurnTest is DSTest {
         assertEq(amounts.length, 2);
         assertEq(amounts[0], 5);
         assertEq(amounts[1], 4);
-        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(address(token0), 0, 10);
+        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(token0, 0, 10);
         assertEq(accounts.length, 1);
         assertEq(accounts[0], address(account0));
         assertEq(amounts.length, 1);
         assertEq(amounts[0], 5);
-        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(address(token1), 0, 10);
+        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(token1, 0, 10);
         assertEq(accounts.length, 1);
         assertEq(accounts[0], address(account0));
         assertEq(amounts.length, 1);
         assertEq(amounts[0], 4);
-        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(address(token2), 0, 10);
+        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(token2, 0, 10);
         assertEq(accounts.length, 0);
         assertEq(amounts.length, 0);
-        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(address(token3), 0, 10);
+        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(token3, 0, 10);
         assertEq(accounts.length, 0);
         assertEq(amounts.length, 0);
 
@@ -1144,22 +1181,22 @@ contract MixTokenBurnTest is DSTest {
         assertEq(amounts[0], 5);
         assertEq(amounts[1], 4);
         assertEq(amounts[2], 10);
-        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(address(token0), 0, 10);
+        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(token0, 0, 10);
         assertEq(accounts.length, 1);
         assertEq(accounts[0], address(account0));
         assertEq(amounts.length, 1);
         assertEq(amounts[0], 5);
-        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(address(token1), 0, 10);
+        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(token1, 0, 10);
         assertEq(accounts.length, 1);
         assertEq(accounts[0], address(account0));
         assertEq(amounts.length, 1);
         assertEq(amounts[0], 4);
-        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(address(token2), 0, 10);
+        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(token2, 0, 10);
         assertEq(accounts.length, 1);
         assertEq(accounts[0], address(account0));
         assertEq(amounts.length, 1);
         assertEq(amounts[0], 10);
-        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(address(token3), 0, 10);
+        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(token3, 0, 10);
         assertEq(accounts.length, 0);
         assertEq(amounts.length, 0);
 
@@ -1189,22 +1226,22 @@ contract MixTokenBurnTest is DSTest {
         assertEq(amounts[1], 4);
         assertEq(amounts[2], 10);
         assertEq(amounts[3], 1);
-        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(address(token0), 0, 10);
+        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(token0, 0, 10);
         assertEq(accounts.length, 1);
         assertEq(accounts[0], address(account0));
         assertEq(amounts.length, 1);
         assertEq(amounts[0], 5);
-        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(address(token1), 0, 10);
+        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(token1, 0, 10);
         assertEq(accounts.length, 1);
         assertEq(accounts[0], address(account0));
         assertEq(amounts.length, 1);
         assertEq(amounts[0], 4);
-        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(address(token2), 0, 10);
+        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(token2, 0, 10);
         assertEq(accounts.length, 1);
         assertEq(accounts[0], address(account0));
         assertEq(amounts.length, 1);
         assertEq(amounts[0], 10);
-        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(address(token3), 0, 10);
+        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(token3, 0, 10);
         assertEq(accounts.length, 1);
         assertEq(accounts[0], address(account0));
         assertEq(amounts.length, 1);
@@ -1236,22 +1273,22 @@ contract MixTokenBurnTest is DSTest {
         assertEq(amounts[1], 4);
         assertEq(amounts[2], 10);
         assertEq(amounts[3], 2);
-        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(address(token0), 0, 10);
+        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(token0, 0, 10);
         assertEq(accounts.length, 1);
         assertEq(accounts[0], address(account0));
         assertEq(amounts.length, 1);
         assertEq(amounts[0], 5);
-        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(address(token1), 0, 10);
+        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(token1, 0, 10);
         assertEq(accounts.length, 1);
         assertEq(accounts[0], address(account0));
         assertEq(amounts.length, 1);
         assertEq(amounts[0], 4);
-        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(address(token2), 0, 10);
+        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(token2, 0, 10);
         assertEq(accounts.length, 1);
         assertEq(accounts[0], address(account0));
         assertEq(amounts.length, 1);
         assertEq(amounts[0], 10);
-        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(address(token3), 0, 10);
+        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(token3, 0, 10);
         assertEq(accounts.length, 1);
         assertEq(accounts[0], address(account0));
         assertEq(amounts.length, 1);
@@ -1287,7 +1324,7 @@ contract MixTokenBurnTest is DSTest {
         assertEq(amounts.length, 1);
         assertEq(amounts[0], 1);
         address[] memory accounts;
-        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(address(token0), 0, 10);
+        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(token0, 0, 10);
         assertEq(accounts.length, 1);
         assertEq(accounts[0], address(account0));
         assertEq(amounts.length, 1);
@@ -1320,7 +1357,7 @@ contract MixTokenBurnTest is DSTest {
         assertEq(tokens[0], address(token0));
         assertEq(amounts.length, 1);
         assertEq(amounts[0], 3);
-        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(address(token0), 0, 10);
+        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(token0, 0, 10);
         assertEq(accounts.length, 1);
         assertEq(accounts[0], address(account0));
         assertEq(amounts.length, 1);
@@ -1359,7 +1396,7 @@ contract MixTokenBurnTest is DSTest {
         assertEq(tokens[0], address(token0));
         assertEq(amounts.length, 1);
         assertEq(amounts[0], 4);
-        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(address(token0), 0, 10);
+        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(token0, 0, 10);
         assertEq(accounts.length, 1);
         assertEq(accounts[0], address(account0));
         assertEq(amounts.length, 1);
@@ -1398,7 +1435,7 @@ contract MixTokenBurnTest is DSTest {
         assertEq(tokens[0], address(token0));
         assertEq(amounts.length, 1);
         assertEq(amounts[0], 7);
-        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(address(token0), 0, 10);
+        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(token0, 0, 10);
         assertEq(accounts.length, 1);
         assertEq(accounts[0], address(account0));
         assertEq(amounts.length, 1);
@@ -1444,7 +1481,7 @@ contract MixTokenBurnTest is DSTest {
         assertEq(tokens[0], address(token0));
         assertEq(amounts.length, 1);
         assertEq(amounts[0], 9);
-        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(address(token0), 0, 10);
+        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(token0, 0, 10);
         assertEq(accounts.length, 1);
         assertEq(accounts[0], address(account0));
         assertEq(amounts.length, 1);
@@ -1497,7 +1534,7 @@ contract MixTokenBurnTest is DSTest {
         assertEq(tokens[0], address(token0));
         assertEq(amounts.length, 1);
         assertEq(amounts[0], 10);
-        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(address(token0), 0, 10);
+        (accounts, amounts) = mixTokenBurn.getTokenAccountsBurned(token0, 0, 10);
         assertEq(accounts.length, 1);
         assertEq(accounts[0], address(account0));
         assertEq(amounts.length, 1);
@@ -1538,6 +1575,61 @@ contract MixTokenBurnTest is DSTest {
         assertEq(accounts[0], address(account0));
         assertEq(amounts.length, 1);
         assertEq(amounts[0], 3);
+    }
+
+    function testControlGetTokenToBurnItemNoToken() public {
+        bytes32 itemId = mixItemStore.create(hex"0220", hex"1234");
+        mixTokenBurn.setTokenToBurnItem(itemId, token0);
+        mixTokenBurn.getTokenToBurnItem(itemId);
+    }
+
+    function testFailGetTokenToBurnItemNoToken() public {
+        bytes32 itemId = mixItemStore.create(hex"0220", hex"1234");
+        mixTokenBurn.getTokenToBurnItem(itemId);
+    }
+
+    function testGetTokenToBurnItem() public {
+        bytes32 itemId = mixItemStore.create(hex"0220", hex"1234");
+        mixTokenBurn.setTokenToBurnItem(itemId, token0);
+        assertEq(address(mixTokenBurn.getTokenToBurnItem(itemId)), address(token0));
+    }
+
+    function testGetItemsBurningTokenCount() public {
+        assertEq(mixTokenBurn.getItemsBurningTokenCount(token0), 4);
+    }
+
+    function testGetItemsBurningToken() public {
+        bytes32[] memory inItems = new bytes32[](4);
+        inItems[0] = itemId0;
+        inItems[1] = itemId1;
+        inItems[2] = itemId2;
+        inItems[3] = itemId3;
+
+        uint[] memory inAmounts = new uint[](4);
+        inAmounts[0] = 4;
+        inAmounts[1] = 3;
+        inAmounts[2] = 2;
+        inAmounts[3] = 1;
+
+        for (uint i = 0; i < 4; i++) {
+            account0.burnItem(inItems[i], inAmounts[i], address(0), address(0), address(0), address(0));
+        }
+
+        for (uint offset = 0; offset < 5; offset++) {
+            for (uint limit = 0; limit < 6; limit++) {
+                (bytes32[] memory items, uint[] memory amounts) = mixTokenBurn.getItemsBurningToken(token0, offset, limit);
+                uint length = 4 - offset;
+                if (length < 0) length = 0;
+                if (limit != 0 && length > limit) length = limit;
+                assertEq(items.length, length);
+                assertEq(amounts.length, length);
+
+                for (uint i = 0; i < length; i++) {
+                    assertEq(items[i], inItems[i + offset]);
+                    assertEq(amounts[i], inAmounts[i + offset]);
+                }
+            }
+        }
     }
 
     function testGetAccountTokensBurned() public {
@@ -1594,7 +1686,7 @@ contract MixTokenBurnTest is DSTest {
 
         for (uint offset = 0; offset < 5; offset++) {
             for (uint limit = 0; limit < 6; limit++) {
-                (address[] memory accounts, uint[] memory amounts) = mixTokenBurn.getTokenAccountsBurned(address(token0), offset, limit);
+                (address[] memory accounts, uint[] memory amounts) = mixTokenBurn.getTokenAccountsBurned(token0, offset, limit);
                 uint length = 4 - offset;
                 if (length < 0) length = 0;
                 if (length > limit) length = limit;

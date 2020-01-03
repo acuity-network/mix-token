@@ -1,6 +1,5 @@
 pragma solidity ^0.5.12;
 
-import "mix-item-dag/MixItemDagOneParentOnlyOwner.sol";
 import "./MixTokenInterface.sol";
 import "./MixTokenItemRegistry.sol";
 
@@ -21,9 +20,19 @@ contract MixTokenBurn {
     }
 
     /**
+     * @dev Mapping of item to token to burn for that item.
+     */
+    mapping (bytes32 => MixTokenOwnedInterface) itemTokenToBurn;
+
+    /**
+     * @dev Mapping of token to list of items that it should be burned for.
+     */
+    mapping (address => bytes32[]) tokenToBurnItemsList;
+
+    /**
      * @dev Mapping of account to list of tokens that it has burned.
      */
-    mapping (address => address[]) accountTokensBurnedList;
+    mapping (address => MixTokenInterface[]) accountTokensBurnedList;
 
     /**
      * @dev Mapping of token to mapping of account to AccountBurnedLinked.
@@ -46,14 +55,14 @@ contract MixTokenBurn {
     mapping (bytes32 => uint) itemBurnedTotal;
 
     /**
-     * @dev Address of token registry contract.
+     * @dev MixItemStoreRegistry contract.
      */
-    MixTokenItemRegistry tokenItemRegistry;
+    MixItemStoreRegistry public itemStoreRegistry;
 
     /**
-     * @dev Address of contract linking content items to the token that can be burned for it.
+     * @dev Address of token registry contract.
      */
-    MixItemDagOneParentOnlyOwner tokenItems;
+    MixTokenItemRegistry public tokenItemRegistry;
 
     /**
      * @dev A token has been burned.
@@ -74,14 +83,33 @@ contract MixTokenBurn {
     }
 
     /**
+     * @param _itemStoreRegistry Address of the MixItemStoreRegistry contract.
      * @param _tokenItemRegistry Address of the MixTokenItemRegistry contract.
-     * @param _tokenItems Address of the MixItemDagOneParentOnlyOwner contract.
      */
-    constructor(MixTokenItemRegistry _tokenItemRegistry, MixItemDagOneParentOnlyOwner _tokenItems) public {
+    constructor(MixItemStoreRegistry _itemStoreRegistry, MixTokenItemRegistry _tokenItemRegistry) public {
+        // Store the address of the MixItemStoreRegistry contract.
+        itemStoreRegistry = _itemStoreRegistry;
         // Store the address of the MixTokenItemRegistry contract.
         tokenItemRegistry = _tokenItemRegistry;
-        // Store the address of the MixItemDagOneParentOnlyOwner contract.
-        tokenItems = _tokenItems;
+    }
+
+    /**
+     * @dev Set the token that can be burned for an item.
+     * @param itemId itemId of item that is having set which token can be burned for it.
+     * @param token Address of token that can be burned for the item.
+     */
+    function setTokenToBurnItem(bytes32 itemId, MixTokenOwnedInterface token) external {
+        MixItemStoreInterface itemStore = itemStoreRegistry.getItemStore(itemId);
+        // Ensure the item is owned by sender.
+        require (itemStore.getOwner(itemId) == msg.sender, "Item is not owned by sender.");
+        // Ensure the token is owned by sender.
+        require (token.owner() == msg.sender, "Token is not owned by sender.");
+        // Ensure the item's token has not been set before.
+        require (itemTokenToBurn[itemId] == MixTokenOwnedInterface(0), "Token to burn for item has already been set.");
+        // Set the token to burn for the item.
+        itemTokenToBurn[itemId] = token;
+        // Add item to list of items that burn token.
+        tokenToBurnItemsList[address(token)].push(itemId);
     }
 
     /**
@@ -135,7 +163,7 @@ contract MixTokenBurn {
      */
     function getBurnItemPrev(bytes32 itemId, uint amount) external view returns (address tokenPrev, address tokenOldPrev, address itemPrev, address itemOldPrev) {
         // Get token contract for item.
-        address token = tokenItemRegistry.getToken(tokenItems.getParentId(itemId));
+        address token = address(getTokenToBurnItem(itemId));
         // Get previous and old previous for tokenAccountBurned linked list.
         (tokenPrev, tokenOldPrev) = _getPrev(tokenAccountBurned[token], amount);
         // Get previous and old previous for itemAccountBurned linked list.
@@ -198,9 +226,9 @@ contract MixTokenBurn {
      * @param prev Address of the entry preceeding the new entry.
      * @param oldPrev Address of the entry preceeding the old entry.
      */
-    function _burnToken(address token, uint amount, address prev, address oldPrev) internal {
+    function _burnToken(MixTokenInterface token, uint amount, address prev, address oldPrev) internal {
         // Get accountBurned mapping.
-        mapping (address => AccountBurnedLinked) storage accountBurned = tokenAccountBurned[token];
+        mapping (address => AccountBurnedLinked) storage accountBurned = tokenAccountBurned[address(token)];
         // Update list of tokens burned by this account.
         if (accountBurned[msg.sender].amount == 0) {
             accountTokensBurnedList[msg.sender].push(token);
@@ -237,7 +265,7 @@ contract MixTokenBurn {
         // Wrap with require () in case the token contract returns false on error instead of throwing.
         require (token.transferFrom(msg.sender, address(this), amount), "Token transfer failed.");
         // Record the tokens as burned.
-        _burnToken(address(token), amount, prev, oldPrev);
+        _burnToken(token, amount, prev, oldPrev);
         // Emit the event.
         emit BurnToken(token, 0, msg.sender, amount);
     }
@@ -253,18 +281,68 @@ contract MixTokenBurn {
      */
     function burnItem(bytes32 itemId, uint amount, address tokenPrev, address tokenOldPrev, address itemPrev, address itemOldPrev) external nonZero(amount) {
         // Get token contract for item.
-        MixTokenInterface token = MixTokenInterface(tokenItemRegistry.getToken(tokenItems.getParentId(itemId)));
-        require (address(token) != address(0), "Item does not have a token to burn.");
+        MixTokenInterface token = MixTokenInterface(address(getTokenToBurnItem(itemId)));
         // Transfer the tokens to this contract.
         // Wrap with require () in case the token contract returns false on error instead of throwing.
         require (token.transferFrom(msg.sender, address(this), amount), "Token transfer failed.");
         // Record the tokens as burned.
-        _burnToken(address(token), amount, tokenPrev, tokenOldPrev);
+        _burnToken(token, amount, tokenPrev, tokenOldPrev);
         _burnItem(itemId, amount, itemPrev, itemOldPrev);
         // Update total burned for this item.
         itemBurnedTotal[itemId] += amount;
         // Emit the event.
         emit BurnToken(token, itemId, msg.sender, amount);
+    }
+
+    /**
+     * @dev Get the token that can be burned for an item.
+     * @param itemId itemId of the item.
+     * @return Token that can be burned for the item.
+     */
+    function getTokenToBurnItem(bytes32 itemId) public view returns (MixTokenOwnedInterface token) {
+        token = itemTokenToBurn[itemId];
+        require (token != MixTokenOwnedInterface(0), "Item does not have a token to burn.");
+    }
+
+    /**
+     * @dev Get number of items that a token can be burned for.
+     * @param token Token to get the number of items that can be burned for.
+     * @return Number of items that the token can be burned for.
+     */
+    function getItemsBurningTokenCount(MixTokenInterface token) external view returns (uint) {
+        return tokenToBurnItemsList[address(token)].length;
+    }
+
+    /**
+     * @dev Get list of items that a token can be burned for.
+     * @param token Token to check which items it can be burned tokens for.
+     * @param offset Offset to start results from.
+     * @param limit Maximum number of results to return. 0 for unlimited.
+     * @return itemIds List of itemIds for items token can be burned for.
+     * @return amounts Amount of tokens that was burned for each item.
+     */
+    function getItemsBurningToken(MixTokenInterface token, uint offset, uint limit) external view returns (bytes32[] memory itemIds, uint[] memory amounts) {
+        // Get itemsBurningToken mapping.
+        bytes32[] storage itemsBurningToken = tokenToBurnItemsList[address(token)];
+        uint _limit = 0;
+        // Check if offset is beyond the end of the array.
+        if (offset < itemsBurningToken.length) {
+            // Check how many itemIds we can retrieve.
+            if (limit == 0 || offset + limit > itemsBurningToken.length) {
+                _limit = itemsBurningToken.length - offset;
+            }
+            else {
+                _limit = limit;
+            }
+        }
+        // Allocate memory arrays.
+        itemIds = new bytes32[](_limit);
+        amounts = new uint[](_limit);
+        // Populate memory array.
+        for (uint i = 0; i < _limit; i++) {
+            itemIds[i] = itemsBurningToken[offset + i];
+            amounts[i] = itemBurnedTotal[itemIds[i]];
+        }
     }
 
     /**
@@ -306,7 +384,7 @@ contract MixTokenBurn {
      */
     function getAccountTokensBurned(address account, uint offset, uint limit) external view returns (address[] memory tokens, uint[] memory amounts) {
         // Get tokensBurned mapping.
-        address[] storage tokensBurned = accountTokensBurnedList[account];
+        MixTokenInterface[] storage tokensBurned = accountTokensBurnedList[account];
         uint _limit = 0;
         // Check if offset is beyond the end of the array.
         if (offset < tokensBurned.length) {
@@ -323,7 +401,7 @@ contract MixTokenBurn {
         amounts = new uint[](_limit);
         // Populate memory arrays.
         for (uint i = 0; i < _limit; i++) {
-            tokens[i] = tokensBurned[offset + i];
+            tokens[i] = address(tokensBurned[offset + i]);
             amounts[i] = tokenAccountBurned[tokens[i]][account].amount;
         }
     }
@@ -370,9 +448,9 @@ contract MixTokenBurn {
      * @return accounts List of accounts that burned the token.
      * @return amounts Amount of token each account burned.
      */
-    function getTokenAccountsBurned(address token, uint offset, uint limit) external view returns (address[] memory accounts, uint[] memory amounts) {
+    function getTokenAccountsBurned(MixTokenInterface token, uint offset, uint limit) external view returns (address[] memory accounts, uint[] memory amounts) {
         // Get accountBurned mapping.
-        mapping (address => AccountBurnedLinked) storage accountBurned = tokenAccountBurned[token];
+        mapping (address => AccountBurnedLinked) storage accountBurned = tokenAccountBurned[address(token)];
         // Get accounts and corresponding amounts.
         (accounts, amounts) = _getAccountsBurned(accountBurned, offset, limit);
     }
